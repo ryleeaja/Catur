@@ -79,6 +79,14 @@
         }
         .arena-header .info .color-badge.white { color: #f0f0f0; }
         .arena-header .info .color-badge.black { color: #222; background: #ddd; }
+        .arena-header .info .timer-info {
+            font-size: 0.7rem;
+            background: #0b1422;
+            padding: 0.05rem 0.6rem;
+            border-radius: 30px;
+            border: 1px solid #4a8ad4;
+            color: #7aa9ff;
+        }
 
         .board-box {
             width: 100%;
@@ -303,11 +311,40 @@
         .toast.info { background: #2f5b8a; }
         @keyframes slideUp { 0% { transform: translateY(50px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
 
+        /* Timer display */
+        .timer-display {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            padding: 0.3rem 0.8rem;
+            background: #0a111f;
+            border-radius: 1rem;
+            border: 1px solid #2a405a;
+            margin: 0.3rem auto 0.6rem;
+            max-width: 400px;
+        }
+        .timer-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        .timer-item .color-dot { width: 12px; height: 12px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.2); }
+        .timer-item .color-dot.white { background: #f0f0f0; }
+        .timer-item .color-dot.black { background: #222; }
+        .timer-item .time { font-variant-numeric: tabular-nums; min-width: 50px; color: #b3e0a0; }
+        .timer-item.active { background: #1a3050; padding: 0.1rem 0.6rem; border-radius: 30px; border: 1px solid #4a8ad4; }
+        .timer-item.active .time { color: #7ae0ff; }
+        .timer-item.low-time .time { color: #ff6b6b; animation: blink 0.8s ease-in-out infinite; }
+        @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
         @media (max-width: 600px) {
             .arena-container { padding: 1rem; }
             .square { font-size: 1.8rem; }
             .arena-header .info { gap: 0.5rem; font-size: 0.75rem; }
             .analysis-grid { grid-template-columns: 1fr 1fr; }
+            .timer-display { gap: 1rem; flex-wrap: wrap; }
         }
     </style>
 </head>
@@ -321,6 +358,21 @@
                 <span class="you">🧑 Anda</span> vs <span class="opponent">👤 Menunggu...</span>
             </span>
             <span class="color-badge" id="colorBadge">⚪ Putih</span>
+            <span class="timer-info" id="timerInfo">⏱️ 5 menit</span>
+        </div>
+    </div>
+
+    <!-- Timer Display -->
+    <div class="timer-display" id="timerDisplay">
+        <div class="timer-item active" id="timerWhite">
+            <span class="color-dot white"></span>
+            <span>Putih</span>
+            <span class="time" id="timeWhite">05:00</span>
+        </div>
+        <div class="timer-item" id="timerBlack">
+            <span class="color-dot black"></span>
+            <span>Hitam</span>
+            <span class="time" id="timeBlack">05:00</span>
         </div>
     </div>
 
@@ -457,6 +509,16 @@ function getRoomSession() {
     }
 }
 
+function getMatchmakingSettings() {
+    const data = localStorage.getItem('matchmaking_settings');
+    if (data) {
+        try {
+            return JSON.parse(data);
+        } catch (e) {}
+    }
+    return { timerEnabled: true, timerMinutes: 5 };
+}
+
 function saveUserSession(user) {
     localStorage.setItem('chess_user', JSON.stringify({
         userId: user.userId,
@@ -531,6 +593,14 @@ let moveTimestamps = [];
 let rewardAmount = 0;
 let isProcessing = false;
 
+// Timer variables
+let timerEnabled = true;
+let timerMinutes = 5;
+let timeWhite = 300;
+let timeBlack = 300;
+let timerInterval = null;
+let activeTimer = 'w';
+
 // ============================================================
 // ==================== DOM ====================================
 // ============================================================
@@ -548,6 +618,11 @@ const promotionModal = document.getElementById('promotionModal');
 const promotionOptions = document.getElementById('promotionOptions');
 const resignBtn = document.getElementById('resignBtn');
 const backBtn = document.getElementById('backToDashboardBtn');
+const timerInfo = document.getElementById('timerInfo');
+const timeWhiteEl = document.getElementById('timeWhite');
+const timeBlackEl = document.getElementById('timeBlack');
+const timerWhiteEl = document.getElementById('timerWhite');
+const timerBlackEl = document.getElementById('timerBlack');
 
 // ============================================================
 // ==================== FUNGSI CATUR ===========================
@@ -774,6 +849,124 @@ function makeMove(b, fr, fc, tr, tc, moveData = null) {
 }
 
 // ============================================================
+// ==================== TIMER ==================================
+// ============================================================
+function initTimers() {
+    const minutes = timerEnabled ? timerMinutes : 0;
+    timeWhite = minutes * 60;
+    timeBlack = minutes * 60;
+    updateTimerDisplay();
+    timerInfo.textContent = timerEnabled ? `⏱️ ${timerMinutes} menit` : '⏱️ Tanpa Timer';
+}
+
+function startTimer() {
+    if (timerInterval) clearInterval(timerInterval);
+    if (!timerEnabled || timerMinutes === 0) {
+        timeWhiteEl.textContent = '--:--';
+        timeBlackEl.textContent = '--:--';
+        return;
+    }
+    timerInterval = setInterval(() => {
+        if (activeTimer === 'w') {
+            timeWhite--;
+            if (timeWhite <= 0) {
+                timeWhite = 0;
+                updateTimerDisplay();
+                clearInterval(timerInterval);
+                timerInterval = null;
+                if (gameActive && !gameOver) { handleTimeout('w'); }
+                return;
+            }
+        } else if (activeTimer === 'b') {
+            timeBlack--;
+            if (timeBlack <= 0) {
+                timeBlack = 0;
+                updateTimerDisplay();
+                clearInterval(timerInterval);
+                timerInterval = null;
+                if (gameActive && !gameOver) { handleTimeout('b'); }
+                return;
+            }
+        }
+        updateTimerDisplay();
+    }, 1000);
+}
+
+function switchTimer(color) {
+    activeTimer = color;
+    updateTimerUI();
+    if (timerEnabled && timerMinutes > 0) {
+        startTimer();
+    }
+}
+
+function updateTimerUI() {
+    timerWhiteEl.classList.remove('active', 'low-time');
+    timerBlackEl.classList.remove('active', 'low-time');
+    if (activeTimer === 'w') {
+        timerWhiteEl.classList.add('active');
+        if (timeWhite <= 60) timerWhiteEl.classList.add('low-time');
+    } else if (activeTimer === 'b') {
+        timerBlackEl.classList.add('active');
+        if (timeBlack <= 60) timerBlackEl.classList.add('low-time');
+    }
+}
+
+function updateTimerDisplay() {
+    const formatTime = (seconds) => {
+        if (!timerEnabled || timerMinutes === 0) return '--:--';
+        const m = Math.floor(Math.max(0, seconds)/60);
+        const s = Math.max(0, seconds)%60;
+        return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    };
+    timeWhiteEl.textContent = formatTime(timeWhite);
+    timeBlackEl.textContent = formatTime(timeBlack);
+    updateTimerUI();
+}
+
+function stopTimer() {
+    if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+    }
+}
+
+function resetTimers() {
+    stopTimer();
+    initTimers();
+    activeTimer = 'w';
+    updateTimerUI();
+}
+
+function handleTimeout(color) {
+    if (gameOver) return;
+    gameOver = true;
+    gameActive = false;
+    stopTimer();
+    
+    const user = getUserSession();
+    if (!user) return;
+    
+    const isUser = color === userColor;
+    const analysis = analyzeGame(isUser ? 'opponent' : 'user');
+    
+    if (isUser) {
+        const penalty = 10;
+        rewardAmount = -penalty;
+        statusText.textContent = `⏰ Waktu habis! Anda kalah -${penalty} ELO`;
+        updateUserStats(false, analysis);
+        showAnalysisModal(false, false, analysis);
+    } else {
+        const reward = 15;
+        rewardAmount = reward;
+        statusText.textContent = `🎉 Waktu habis! Lawan kalah. Anda menang! +${reward} ELO`;
+        updateUserStats(true, analysis);
+        showAnalysisModal(true, false, analysis);
+    }
+    renderBoard();
+}
+
+// ============================================================
 // ==================== RENDER =================================
 // ============================================================
 function renderBoard() {
@@ -874,10 +1067,15 @@ function onSquareClick(row, col) {
                 renderBoard();
                 updateStatus();
                 saveGameState();
+                
+                // Switch timer
+                switchTimer(currentTurn);
+                
                 const st = gameStatus(board, currentTurn);
                 if (st === 'checkmate' || st === 'stalemate') {
                     gameOver = true;
                     gameActive = false;
+                    stopTimer();
                     const winner = st === 'checkmate' ? (currentTurn === 'w' ? 'Hitam' : 'Putih') : null;
                     const isWinner = (winner === 'Putih' && userColor === 'w') || (winner === 'Hitam' && userColor === 'b');
                     handleGameEnd(isWinner, st === 'stalemate');
@@ -917,6 +1115,7 @@ promotionOptions.addEventListener('click', (e) => {
         if (st === 'checkmate' || st === 'stalemate') {
             gameOver = true;
             gameActive = false;
+            stopTimer();
             const winner = st === 'checkmate' ? (currentTurn === 'w' ? 'Hitam' : 'Putih') : null;
             const isWinner = (winner === 'Putih' && userColor === 'w') || (winner === 'Hitam' && userColor === 'b');
             handleGameEnd(isWinner, st === 'stalemate');
@@ -940,6 +1139,11 @@ async function saveGameState() {
             room.lastMove = lastMove;
             room.gameMoves = gameMoves;
             room.moveTimestamps = moveTimestamps;
+            room.timerEnabled = timerEnabled;
+            room.timerMinutes = timerMinutes;
+            room.timeWhite = timeWhite;
+            room.timeBlack = timeBlack;
+            room.activeTimer = activeTimer;
             if (gameOver) room.status = 'finished';
             await updateData(data);
         }
@@ -984,6 +1188,64 @@ function analyzeGame(winner) {
         return { accuracy: Math.max(10, accuracy - 15), rating: rating, goodMoves: Math.max(0, goodMoves - 1), blunders: blunders + 2, avgSpeed };
     }
     return { accuracy, rating, goodMoves, blunders, avgSpeed };
+}
+
+// ============================================================
+// ==================== SAVE HISTORY ===========================
+// ============================================================
+async function saveGameHistory(gameData) {
+    try {
+        const user = getUserSession();
+        if (!user) return;
+        
+        const data = await getData();
+        const currentUser = data.users.find(u => u.userId === user.userId);
+        if (!currentUser) return;
+        
+        if (!currentUser.gameHistory) currentUser.gameHistory = [];
+        currentUser.gameHistory.push(gameData);
+        
+        await updateData(data);
+        console.log('✅ Game history saved');
+    } catch (error) {
+        console.error('❌ Error saving history:', error);
+    }
+}
+
+// ============================================================
+// ==================== UPDATE USER STATS ======================
+// ============================================================
+async function updateUserStats(isWinner, analysis) {
+    try {
+        const user = getUserSession();
+        if (!user) return;
+        const data = await getData();
+        const currentUser = data.users.find(u => u.userId === user.userId);
+        if (!currentUser) return;
+        
+        if (isWinner) {
+            currentUser.elo = Math.min(3000, (currentUser.elo || 100) + Math.abs(rewardAmount));
+            currentUser.gamesWon = (currentUser.gamesWon || 0) + 1;
+            currentUser.currentStreak = (currentUser.currentStreak || 0) + 1;
+        } else {
+            currentUser.elo = Math.max(0, (currentUser.elo || 100) - Math.abs(rewardAmount));
+            currentUser.currentStreak = 0;
+        }
+        currentUser.gamesPlayed = (currentUser.gamesPlayed || 0) + 1;
+        updateRank(currentUser);
+        
+        if (analysis) {
+            currentUser.totalAccuracy = (currentUser.totalAccuracy || 0) + (analysis.accuracy || 0);
+            currentUser.totalSpeed = (currentUser.totalSpeed || 0) + (analysis.avgSpeed || 0);
+            currentUser.gamesWithStats = (currentUser.gamesWithStats || 0) + 1;
+        }
+        
+        await updateData(data);
+        saveUserSession(currentUser);
+        console.log('✅ User stats updated');
+    } catch (error) {
+        console.error('❌ updateUserStats error:', error);
+    }
 }
 
 // ============================================================
@@ -1045,29 +1307,35 @@ async function loadGameState() {
             badge.textContent = '⚫ Hitam';
             badge.className = 'color-badge black';
         }
+        
+        // Load timer settings from room
+        timerEnabled = room.timerEnabled !== undefined ? room.timerEnabled : true;
+        timerMinutes = room.timerMinutes || 5;
+        timeWhite = room.timeWhite !== undefined ? room.timeWhite : timerMinutes * 60;
+        timeBlack = room.timeBlack !== undefined ? room.timeBlack : timerMinutes * 60;
+        activeTimer = room.activeTimer || 'w';
+        updateTimerDisplay();
+        timerInfo.textContent = timerEnabled ? `⏱️ ${timerMinutes} menit` : '⏱️ Tanpa Timer';
+        if (timerEnabled && timerMinutes > 0 && !gameOver) {
+            startTimer();
+        }
+        
         renderBoard();
         updateStatus();
         
-        // CEK: Jika game sudah selesai, tampilkan modal untuk lawan juga
         if (gameOver) {
             const alreadyShown = sessionStorage.getItem('modal_shown_' + roomId);
             if (!alreadyShown) {
                 sessionStorage.setItem('modal_shown_' + roomId, 'true');
-                
                 const gameResult = room.gameResult || {};
                 const isStalemate = gameResult.isStalemate || false;
-                
                 let analysis = null;
                 let rewardAmt = 0;
-                
                 if (gameResult.winnerId) {
-                    // Cek apakah user ini adalah pemenang atau pecundang
                     if (gameResult.winnerId === user.userId) {
-                        // User adalah pemenang
                         analysis = gameResult.winnerAnalysis || analyzeGame('user');
                         rewardAmt = gameResult.winnerReward || 0;
                     } else if (gameResult.loserId === user.userId) {
-                        // User adalah pecundang
                         analysis = gameResult.loserAnalysis || analyzeGame('opponent');
                         rewardAmt = gameResult.loserReward || 0;
                     } else {
@@ -1078,7 +1346,6 @@ async function loadGameState() {
                     analysis = gameResult.winnerAnalysis || analyzeGame('draw');
                     rewardAmt = 0;
                 }
-                
                 rewardAmount = rewardAmt;
                 const isWinner = gameResult.winnerId === user.userId;
                 showAnalysisModal(isWinner, isStalemate, analysis);
@@ -1095,6 +1362,8 @@ async function loadGameState() {
 async function handleGameEnd(isWinner, isStalemate, fromLoad = false) {
     console.log('📊 handleGameEnd:', { isWinner, isStalemate, fromLoad });
     
+    stopTimer();
+    
     if (fromLoad && gameOver) {
         const alreadyShown = sessionStorage.getItem('modal_shown_' + roomId);
         if (!alreadyShown) {
@@ -1102,30 +1371,23 @@ async function handleGameEnd(isWinner, isStalemate, fromLoad = false) {
             const st = gameStatus(board, currentTurn);
             const isWinnerLocal = (st === 'checkmate' && currentTurn !== userColor);
             const isStalemateLocal = st === 'stalemate';
-            
-            // Ambil analisis yang sesuai untuk user ini dari room
             const data = await getData();
             const room = data.rooms?.find(r => r.roomId === roomId);
             let analysis = analyzeGame(isWinnerLocal ? 'user' : 'opponent');
             let rewardAmt = 0;
-            
             if (room && room.gameResult) {
                 const user = getUserSession();
                 if (user) {
-                    // Cek apakah user ini adalah pemenang atau pecundang
                     if (room.gameResult.winnerId === user.userId) {
-                        // User adalah pemenang
                         analysis = room.gameResult.winnerAnalysis || analysis;
                         rewardAmt = room.gameResult.winnerReward || 0;
                     } else if (room.gameResult.loserId === user.userId) {
-                        // User adalah pecundang
                         analysis = room.gameResult.loserAnalysis || analysis;
                         rewardAmt = room.gameResult.loserReward || 0;
                     }
                 }
                 rewardAmount = rewardAmt;
             }
-            
             showAnalysisModal(isWinnerLocal, isStalemateLocal, analysis);
         }
         return;
@@ -1157,8 +1419,8 @@ async function handleGameEnd(isWinner, isStalemate, fromLoad = false) {
     let loserAnalysis = null;
     let winnerReward = 0;
     let loserReward = 0;
-    let winnerElo = 0;
-    let loserElo = 0;
+    let historyResult = '';
+    let historyEloChange = 0;
     
     if (!isStalemate && opponent) {
         const myElo = currentUser.elo || 100;
@@ -1172,10 +1434,10 @@ async function handleGameEnd(isWinner, isStalemate, fromLoad = false) {
             rewardAmount = reward;
             currentUser.elo = Math.min(3000, myElo + reward);
             opponent.elo = Math.max(0, (opponent.elo || 100) - penalty);
-            winnerElo = currentUser.elo;
-            loserElo = opponent.elo;
             winnerReward = reward;
             loserReward = -penalty;
+            historyResult = 'win';
+            historyEloChange = reward;
         } else {
             const calc = calculateEloChange(oppElo, myElo);
             reward = calc.reward;
@@ -1183,10 +1445,10 @@ async function handleGameEnd(isWinner, isStalemate, fromLoad = false) {
             rewardAmount = -penalty;
             currentUser.elo = Math.max(0, myElo - penalty);
             opponent.elo = Math.min(3000, (opponent.elo || 100) + reward);
-            winnerElo = opponent.elo;
-            loserElo = currentUser.elo;
             winnerReward = reward;
             loserReward = -penalty;
+            historyResult = 'lose';
+            historyEloChange = -penalty;
         }
         
         updateRank(currentUser);
@@ -1200,7 +1462,6 @@ async function handleGameEnd(isWinner, isStalemate, fromLoad = false) {
             currentUser.currentStreak = 0;
         }
         
-        // Update opponent stats
         if (!isWinner) {
             opponent.gamesWon = (opponent.gamesWon || 0) + 1;
             opponent.currentStreak = (opponent.currentStreak || 0) + 1;
@@ -1209,11 +1470,9 @@ async function handleGameEnd(isWinner, isStalemate, fromLoad = false) {
         }
         opponent.gamesPlayed = (opponent.gamesPlayed || 0) + 1;
         
-        // Buat analisis untuk pemenang dan pecundang
         const userAnalysis = analyzeGame(isWinner ? 'user' : 'opponent');
         const opponentAnalysis = analyzeGame(isWinner ? 'opponent' : 'user');
         
-        // Tentukan siapa pemenang dan pecundang
         if (isWinner) {
             winnerAnalysis = userAnalysis;
             loserAnalysis = opponentAnalysis;
@@ -1222,7 +1481,6 @@ async function handleGameEnd(isWinner, isStalemate, fromLoad = false) {
             loserAnalysis = userAnalysis;
         }
         
-        // Update stats dengan analisis yang sesuai
         if (isWinner) {
             currentUser.totalAccuracy = (currentUser.totalAccuracy || 0) + (userAnalysis.accuracy || 0);
             currentUser.totalSpeed = (currentUser.totalSpeed || 0) + (userAnalysis.avgSpeed || 0);
@@ -1249,14 +1507,25 @@ async function handleGameEnd(isWinner, isStalemate, fromLoad = false) {
         saveUserSession(currentUser);
         console.log('✅ Stats updated');
         
-        // Tampilkan analisis untuk user saat ini
+        // Save history for current user
+        await saveGameHistory({
+            result: historyResult,
+            opponent: opponent.username,
+            eloChange: historyEloChange,
+            date: new Date().toLocaleString(),
+            timestamp: Date.now(),
+            moves: gameMoves,
+            analysis: userAnalysis,
+            timer: timerMinutes,
+            opponentId: opponent.userId
+        });
+        
         const currentAnalysis = isWinner ? winnerAnalysis : loserAnalysis;
         const currentReward = isWinner ? winnerReward : loserReward;
         rewardAmount = currentReward;
         showAnalysisModal(isWinner, isStalemate, currentAnalysis);
         
     } else {
-        // Stalemate
         rewardAmount = 0;
         const analysis = analyzeGame('draw');
         room.status = 'finished';
@@ -1269,6 +1538,20 @@ async function handleGameEnd(isWinner, isStalemate, fromLoad = false) {
             loserReward: 0
         };
         await updateData(data);
+        
+        // Save history for draw
+        await saveGameHistory({
+            result: 'draw',
+            opponent: opponent ? opponent.username : 'Unknown',
+            eloChange: 0,
+            date: new Date().toLocaleString(),
+            timestamp: Date.now(),
+            moves: gameMoves,
+            analysis: analysis,
+            timer: timerMinutes,
+            opponentId: opponent ? opponent.userId : null
+        });
+        
         showAnalysisModal(false, true, analysis);
     }
 }
@@ -1354,6 +1637,7 @@ resignBtn.addEventListener('click', async function() {
     isProcessing = true;
     this.disabled = true;
     this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...';
+    stopTimer();
 
     try {
         const user = getUserSession();
@@ -1382,12 +1666,10 @@ resignBtn.addEventListener('click', async function() {
             return;
         }
 
-        // Update ELO
         const calc = calculateEloChange(opponent.elo || 100, currentUser.elo || 100);
         const penalty = calc.penalty;
         const reward = calc.reward;
         
-        // User (yang menyerah) kalah
         const loserReward = -penalty;
         const winnerReward = reward;
         
@@ -1404,11 +1686,9 @@ resignBtn.addEventListener('click', async function() {
         opponent.gamesWon = (opponent.gamesWon || 0) + 1;
         opponent.currentStreak = (opponent.currentStreak || 0) + 1;
         
-        // Buat analisis untuk kedua pemain
-        const userAnalysis = analyzeGame('opponent'); // User kalah
-        const opponentAnalysis = analyzeGame('user'); // Opponent menang
+        const userAnalysis = analyzeGame('opponent');
+        const opponentAnalysis = analyzeGame('user');
         
-        // Update stats user
         currentUser.totalAccuracy = (currentUser.totalAccuracy || 0) + (userAnalysis.accuracy || 0);
         currentUser.totalSpeed = (currentUser.totalSpeed || 0) + (userAnalysis.avgSpeed || 0);
         currentUser.gamesWithStats = (currentUser.gamesWithStats || 0) + 1;
@@ -1417,8 +1697,8 @@ resignBtn.addEventListener('click', async function() {
         room.gameResult = {
             winner: 'opponent',
             isStalemate: false,
-            winnerAnalysis: opponentAnalysis, // Analisis untuk pemenang
-            loserAnalysis: userAnalysis,      // Analisis untuk pecundang
+            winnerAnalysis: opponentAnalysis,
+            loserAnalysis: userAnalysis,
             winnerReward: winnerReward,
             loserReward: loserReward,
             winnerId: opponent.userId,
@@ -1428,11 +1708,23 @@ resignBtn.addEventListener('click', async function() {
         await updateData(data);
         saveUserSession(currentUser);
         
+        // Save history for resign
+        await saveGameHistory({
+            result: 'lose',
+            opponent: opponent.username,
+            eloChange: loserReward,
+            date: new Date().toLocaleString(),
+            timestamp: Date.now(),
+            moves: gameMoves,
+            analysis: userAnalysis,
+            timer: timerMinutes,
+            opponentId: opponent.userId
+        });
+        
         gameActive = false;
         gameOver = true;
         if (refreshInterval) clearInterval(refreshInterval);
         
-        // Tampilkan analisis untuk user (pecundang)
         rewardAmount = loserReward;
         showAnalysisModal(false, false, userAnalysis);
         
@@ -1466,6 +1758,7 @@ backBtn.addEventListener('click', async function(e) {
                 if (gameOver || wait >= 5000) {
                     clearInterval(interval);
                     clearModalFlag();
+                    stopTimer();
                     try { deleteRoom(); } catch (e) {}
                     localStorage.removeItem('online_room');
                     window.location.href = 'dashboard.html';
@@ -1476,6 +1769,7 @@ backBtn.addEventListener('click', async function(e) {
     }
     
     clearModalFlag();
+    stopTimer();
     try { await deleteRoom(); } catch (e) {}
     localStorage.removeItem('online_room');
     window.location.href = 'dashboard.html';
@@ -1487,6 +1781,7 @@ backBtn.addEventListener('click', async function(e) {
 modalCloseBtn.addEventListener('click', async () => {
     modal.classList.remove('show');
     clearModalFlag();
+    stopTimer();
     try { await deleteRoom(); } catch (e) {}
     localStorage.removeItem('online_room');
     window.location.href = 'dashboard.html';
@@ -1525,6 +1820,13 @@ function startRefreshLoop() {
 // ============================================================
 async function init() {
     console.log('🚀 Arena Online initialized');
+    
+    // Load matchmaking settings
+    const settings = getMatchmakingSettings();
+    timerEnabled = settings.timerEnabled !== undefined ? settings.timerEnabled : true;
+    timerMinutes = settings.timerMinutes || 5;
+    console.log('⏱️ Timer settings:', { timerEnabled, timerMinutes });
+    
     const roomSession = getRoomSession();
     if (!roomSession) {
         window.location.href = 'dashboard.html';
@@ -1541,6 +1843,7 @@ async function init() {
     roomIdDisplay.textContent = `🏠 Room: ${roomId}`;
     board = createEmptyBoard();
     renderBoard();
+    initTimers();
     await loadGameState();
     startRefreshLoop();
 }
