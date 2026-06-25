@@ -403,9 +403,7 @@
 
     <div class="controls-arena">
         <button class="btn-primary btn-danger" id="resignBtn"><i class="fas fa-flag"></i> Menyerah</button>
-        <button class="btn-primary btn-success" id="copyRoomBtn"><i class="fas fa-copy"></i> Salin ID Room</button>
-    </div>
-
+     </div>
     <div class="footer">Bermain Online · Rokade, En Passant, Promosi · Refresh otomatis</div>
 </div>
 
@@ -1916,23 +1914,6 @@ modalCloseBtn.addEventListener('click', async () => {
     window.location.href = 'dashboard.html';
 });
 
-// ============================================================
-// ==================== COPY ROOM ==============================
-// ============================================================
-document.getElementById('copyRoomBtn').addEventListener('click', () => {
-    if (!roomId) { showToast('❌ Room ID tidak tersedia', 'error'); return; }
-    navigator.clipboard.writeText(roomId).then(() => {
-        showToast('✅ ID Room disalin!', 'success');
-    }).catch(() => {
-        const input = document.createElement('input');
-        input.value = roomId;
-        document.body.appendChild(input);
-        input.select();
-        document.execCommand('copy');
-        document.body.removeChild(input);
-        showToast('✅ ID Room disalin!', 'success');
-    });
-});
 
 // ============================================================
 // ==================== REFRESH LOOP ===========================
