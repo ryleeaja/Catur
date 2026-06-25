@@ -559,6 +559,7 @@
         .toast.success { background: #3d7a4a; }
         .toast.error { background: #7a4a4a; }
         .toast.info { background: #2f5b8a; }
+        @keyframes slideUp { 0% { transform: translateY(50px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
 
         .friend-search {
             display: flex;
@@ -811,11 +812,146 @@
         .lb-item .lb-rank-badge.menengah { background: #c97ae0; color: white; }
         .lb-item .lb-rank-badge.pemula { background: #5a7394; color: white; }
 
+        /* ===== TAB RIWAYAT ===== */
+        .history-game-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        .history-game-item {
+            background: #0f1a2b;
+            padding: 0.8rem 1rem;
+            border-radius: 1rem;
+            border: 1px solid #2a405a;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            transition: 0.2s;
+        }
+        .history-game-item:hover { border-color: #4a6a8a; }
+        .history-game-item .game-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        .history-game-item .game-info .game-result {
+            font-weight: 700;
+            font-size: 0.9rem;
+            min-width: 80px;
+        }
+        .history-game-item .game-info .game-result.win { color: #7ae0a0; }
+        .history-game-item .game-info .game-result.lose { color: #ff6b6b; }
+        .history-game-item .game-info .game-result.draw { color: #f5c542; }
+        .history-game-item .game-info .game-opponent {
+            color: #b6cef0;
+            font-size: 0.85rem;
+        }
+        .history-game-item .game-info .game-opponent i { color: #6b9fff; }
+        .history-game-item .game-info .game-elo-change {
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+        .history-game-item .game-info .game-elo-change.positive { color: #7ae0a0; }
+        .history-game-item .game-info .game-elo-change.negative { color: #ff6b6b; }
+        .history-game-item .game-info .game-date {
+            color: #5a7394;
+            font-size: 0.7rem;
+        }
+        .history-game-item .game-detail-btn {
+            background: #2f5b8a;
+            border: none;
+            color: white;
+            padding: 0.2rem 1rem;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 0.7rem;
+            font-weight: 600;
+            border: 1px solid #5a83b5;
+            transition: 0.2s;
+        }
+        .history-game-item .game-detail-btn:hover { background: #4273ae; }
+
         .menu-title { color: #b6cef0; font-size: 1rem; font-weight: 600; margin-bottom: 0.8rem; }
         .menu-title i { color: #f5c542; margin-right: 8px; }
 
         .footer { margin-top: 1rem; color: #5a7394; font-size: 0.7rem; text-align: center; }
         .loading-text { color: #b6cef0; text-align: center; padding: 0.5rem; font-size: 0.85rem; }
+
+        /* Modal Detail Riwayat */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal-box {
+            background: #141e30;
+            padding: 2rem;
+            border-radius: 2rem;
+            border: 1px solid #2a405a;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            color: #e8f0ff;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal-box .close-modal {
+            position: sticky;
+            top: 0;
+            float: right;
+            background: none;
+            border: none;
+            color: #8aa3c9;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+        .modal-box .close-modal:hover { color: white; }
+        .modal-box .modal-title { font-size: 1.3rem; margin-bottom: 0.5rem; }
+        .modal-box .modal-title i { color: #f5c542; }
+        .modal-box .modal-sub { color: #b6cef0; font-size: 0.9rem; margin-bottom: 1rem; }
+        .modal-box .detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            margin: 1rem 0;
+        }
+        .modal-box .detail-item {
+            background: #0a111f;
+            padding: 0.5rem;
+            border-radius: 0.8rem;
+            border: 1px solid #2a405a;
+        }
+        .modal-box .detail-item .label { font-size: 0.6rem; color: #8aa3c9; text-transform: uppercase; }
+        .modal-box .detail-item .value { font-size: 1.1rem; font-weight: 700; }
+        .modal-box .detail-item .value.gold { color: #f5c542; }
+        .modal-box .detail-item .value.green { color: #7ae0a0; }
+        .modal-box .detail-item .value.red { color: #ff6b6b; }
+        .modal-box .detail-item .value.blue { color: #6b9fff; }
+
+        .modal-box .move-list {
+            background: #0a111f;
+            border-radius: 0.8rem;
+            padding: 0.5rem;
+            max-height: 150px;
+            overflow-y: auto;
+            text-align: left;
+            font-size: 0.75rem;
+            color: #b6cef0;
+            border: 1px solid #2a405a;
+            margin: 0.5rem 0;
+        }
+        .modal-box .move-list .move-num { color: #8aa3c9; margin-right: 4px; }
+        .modal-box .move-list .move-white { color: #e8f0ff; }
+        .modal-box .move-list .move-black { color: #b6cef0; }
 
         @media (max-width: 600px) {
             .dashboard-container { padding: 1rem; }
@@ -840,6 +976,8 @@
             .online-mode-grid { grid-template-columns: 1fr 1fr; }
             .challenge-item { flex-wrap: wrap; gap: 0.5rem; }
             .challenge-item .actions { width: 100%; justify-content: flex-end; }
+            .history-game-item { flex-direction: column; align-items: stretch; text-align: center; }
+            .history-game-item .game-info { justify-content: center; }
         }
     </style>
 </head>
@@ -885,6 +1023,7 @@
         <button class="tab-btn" data-tab="friends"><i class="fas fa-user-friends"></i> Teman <span class="badge" id="friendRequestBadge" style="display:none;">0</span></button>
         <button class="tab-btn" data-tab="stats"><i class="fas fa-chart-bar"></i> Statistik</button>
         <button class="tab-btn" data-tab="leaderboard"><i class="fas fa-crown"></i> Leaderboard</button>
+        <button class="tab-btn" data-tab="history"><i class="fas fa-history"></i> Riwayat</button>
     </div>
 
     <!-- TAB 1: BERMAIN -->
@@ -1054,234 +1193,429 @@
         </div>
     </div>
 
+    <!-- TAB 6: RIWAYAT -->
+    <div class="tab-content" id="tabHistory">
+        <div class="menu-title"><i class="fas fa-history"></i> Riwayat Permainan</div>
+        <div id="historyGameList">
+            <div class="empty-state"><i class="fas fa-clock"></i><p>Belum ada riwayat permainan</p></div>
+        </div>
+    </div>
+
     <div class="footer">Data tersimpan di JSONBin.io · ID Anda bisa disalin dengan klik</div>
 </div>
 
-<!-- TOAST -->
-<div id="toast" class="toast" style="display:none;"></div>
+<!-- Modal Detail Riwayat -->
+<div class="modal-overlay" id="historyDetailModal">
+    <div class="modal-box">
+        <button class="close-modal" id="closeHistoryModal">&times;</button>
+        <div class="modal-title" id="historyModalTitle"><i class="fas fa-chess-queen"></i> Detail Permainan</div>
+        <div class="modal-sub" id="historyModalSub">Detail pertandingan</div>
+        <div class="detail-grid" id="historyDetailGrid">
+            <div class="detail-item"><div class="label">Hasil</div><div class="value" id="detailResult" style="color:#f5c542;">-</div></div>
+            <div class="detail-item"><div class="label">Lawan</div><div class="value" id="detailOpponent" style="color:#b6cef0;">-</div></div>
+            <div class="detail-item"><div class="label">ELO Perubahan</div><div class="value" id="detailEloChange" style="color:#f5c542;">-</div></div>
+            <div class="detail-item"><div class="label">Tanggal</div><div class="value" id="detailDate" style="color:#b6cef0; font-size:0.85rem;">-</div></div>
+            <div class="detail-item"><div class="label">🎯 Akurasi</div><div class="value gold" id="detailAccuracy">0%</div></div>
+            <div class="detail-item"><div class="label">⭐ Rating</div><div class="value" id="detailRating" style="color:#f5c542;">-</div></div>
+            <div class="detail-item"><div class="label">✅ Gerakan Bagus</div><div class="value green" id="detailGoodMoves">0</div></div>
+            <div class="detail-item"><div class="label">❌ Blunder</div><div class="value red" id="detailBlunders">0</div></div>
+            <div class="detail-item"><div class="label">⚡ Kecepatan</div><div class="value blue" id="detailSpeed">0s</div></div>
+            <div class="detail-item"><div class="label">⏱️ Timer</div><div class="value" id="detailTimer" style="color:#b6cef0; font-size:0.85rem;">-</div></div>
+        </div>
+        <div class="move-list" id="detailMoveList">
+            <div style="color:#8aa3c9; text-align:center;">Riwayat gerakan</div>
+        </div>
+    </div>
+</div>
 
 <script>
-    // ===== KONFIGURASI =====
-    const CONFIG = {
-        BIN_ID: '6a3cd052da38895dfefbb5d5',
-        API_KEY: '$2a$10$cd1IrJqQ3YgBdhLSJO0IHuCNdln2PYc0qoLrnVN9waRlmHU3t7MKK',
-        BASE_URL: 'https://api.jsonbin.io/v3/b'
-    };
+// ============================================================
+// ==================== KONFIGURASI ============================
+// ============================================================
+const CONFIG = {
+    BIN_ID: '6a3cd052da38895dfefbb5d5',
+    API_KEY: '$2a$10$cd1IrJqQ3YgBdhLSJO0IHuCNdln2PYc0qoLrnVN9waRlmHU3t7MKK',
+    BASE_URL: 'https://api.jsonbin.io/v3/b'
+};
 
-    // ===== FUNGSI JSONBIN =====
-    async function getData() {
-        try {
-            const response = await fetch(`${CONFIG.BASE_URL}/${CONFIG.BIN_ID}`, {
-                headers: { 'X-Master-Key': CONFIG.API_KEY }
-            });
-            if (!response.ok) {
-                console.error('HTTP Error:', response.status);
-                throw new Error('Gagal mengambil data');
-            }
-            const data = await response.json();
-            return data.record || { users: [], rooms: [], matchmaking: [] };
-        } catch (error) {
-            console.error('Error getData:', error);
-            return { users: [], rooms: [], matchmaking: [] };
-        }
-    }
-
-    async function updateData(data) {
-        try {
-            console.log('📤 Saving data...');
-            const response = await fetch(`${CONFIG.BASE_URL}/${CONFIG.BIN_ID}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Master-Key': CONFIG.API_KEY
-                },
-                body: JSON.stringify(data)
-            });
-            if (!response.ok) {
-                console.error('HTTP Error:', response.status);
-                throw new Error('Gagal menyimpan data');
-            }
-            const result = await response.json();
-            console.log('✅ Data saved successfully!');
-            return result;
-        } catch (error) {
-            console.error('Error updateData:', error);
-            throw error;
-        }
-    }
-
-    // ===== TOAST =====
-    function showToast(message, type = 'info') {
-        const toast = document.getElementById('toast');
-        toast.textContent = message;
-        toast.className = `toast ${type}`;
-        toast.style.display = 'block';
-        setTimeout(() => { toast.style.display = 'none'; }, 4000);
-    }
-
-    // ===== SESSION =====
-    function getUserSession() {
-        const data = localStorage.getItem('chess_user');
-        console.log('🔍 Session data:', data);
-        if (!data) {
-            console.log('❌ No session found');
-            return null;
-        }
-        try {
-            const parsed = JSON.parse(data);
-            console.log('✅ Parsed session:', parsed);
-            if (parsed && parsed.username && parsed.userId) {
-                return parsed;
-            } else {
-                console.log('❌ Invalid session, removing...');
-                localStorage.removeItem('chess_user');
-                return null;
-            }
-        } catch (e) {
-            console.log('❌ Error parsing session:', e);
-            localStorage.removeItem('chess_user');
-            return null;
-        }
-    }
-
-    function checkSession() {
-        const user = getUserSession();
-        if (!user) {
-            console.log('🔴 Redirect ke login');
-            window.location.href = 'index.html';
-            return false;
-        }
-        console.log('✅ Session valid:', user.username);
-        return true;
-    }
-
-    // ===== SLIDER =====
-    let currentSlide = 0;
-    const totalSlides = 5;
-    const sliderTrack = document.getElementById('sliderTrack');
-    const dots = document.querySelectorAll('.slider-dot');
-
-    function goToSlide(index) {
-        currentSlide = index;
-        sliderTrack.style.transform = `translateX(-${index * 20}%)`;
-        dots.forEach((dot, i) => { dot.classList.toggle('active', i === index); });
-    }
-
-    dots.forEach(dot => {
-        dot.addEventListener('click', () => { goToSlide(parseInt(dot.dataset.index)); });
-    });
-
-    let slideInterval = setInterval(() => { goToSlide((currentSlide + 1) % totalSlides); }, 5000);
-    const sliderContainer = document.querySelector('.slider-container');
-    sliderContainer.addEventListener('mouseenter', () => clearInterval(slideInterval));
-    sliderContainer.addEventListener('mouseleave', () => {
-        slideInterval = setInterval(() => { goToSlide((currentSlide + 1) % totalSlides); }, 5000);
-    });
-
-    // ===== TAB NAVIGATION =====
-    const tabBtns = document.querySelectorAll('.tab-btn');
-    const tabContents = {
-        play: document.getElementById('tabPlay'),
-        challenges: document.getElementById('tabChallenges'),
-        friends: document.getElementById('tabFriends'),
-        stats: document.getElementById('tabStats'),
-        leaderboard: document.getElementById('tabLeaderboard')
-    };
-
-    tabBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            tabBtns.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            const tab = btn.dataset.tab;
-            Object.keys(tabContents).forEach(key => {
-                tabContents[key].classList.toggle('active', key === tab);
-            });
-            if (tab === 'friends') loadFriendsData();
-            if (tab === 'leaderboard') loadLeaderboard();
-            if (tab === 'challenges') loadChallenges();
+// ============================================================
+// ==================== FUNGSI JSONBIN =========================
+// ============================================================
+async function getData() {
+    try {
+        const response = await fetch(`${CONFIG.BASE_URL}/${CONFIG.BIN_ID}`, {
+            headers: { 'X-Master-Key': CONFIG.API_KEY }
         });
-    });
+        if (!response.ok) throw new Error('Gagal mengambil data');
+        const data = await response.json();
+        return data.record || { users: [], rooms: [], matchmaking: [], gameHistory: [] };
+    } catch (error) {
+        console.error('Error getData:', error);
+        return { users: [], rooms: [], matchmaking: [], gameHistory: [] };
+    }
+}
 
-    // ===== COPY ID =====
-    document.getElementById('userIdDisplay').addEventListener('click', async () => {
-        const userId = document.getElementById('userIdText').textContent;
-        try {
-            await navigator.clipboard.writeText(userId);
-            showToast('✅ ID berhasil disalin!', 'success');
-        } catch (err) {
-            const input = document.createElement('input');
-            input.value = userId;
-            document.body.appendChild(input);
-            input.select();
-            document.execCommand('copy');
-            document.body.removeChild(input);
-            showToast('✅ ID berhasil disalin!', 'success');
+async function updateData(data) {
+    try {
+        const response = await fetch(`${CONFIG.BASE_URL}/${CONFIG.BIN_ID}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Master-Key': CONFIG.API_KEY
+            },
+            body: JSON.stringify(data)
+        });
+        if (!response.ok) throw new Error('Gagal menyimpan data');
+        return await response.json();
+    } catch (error) {
+        console.error('Error updateData:', error);
+        throw error;
+    }
+}
+
+// ============================================================
+// ==================== TOAST ==================================
+// ============================================================
+function showToast(message, type = 'info') {
+    const toast = document.getElementById('toast');
+    if (!toast) {
+        const newToast = document.createElement('div');
+        newToast.id = 'toast';
+        newToast.className = `toast ${type}`;
+        newToast.textContent = message;
+        newToast.style.display = 'block';
+        document.body.appendChild(newToast);
+        setTimeout(() => { newToast.remove(); }, 4000);
+        return;
+    }
+    toast.textContent = message;
+    toast.className = `toast ${type}`;
+    toast.style.display = 'block';
+    setTimeout(() => { toast.style.display = 'none'; }, 4000);
+}
+
+// ============================================================
+// ==================== SESSION ================================
+// ============================================================
+function getUserSession() {
+    const data = localStorage.getItem('chess_user');
+    if (!data) return null;
+    try {
+        const parsed = JSON.parse(data);
+        if (parsed && parsed.username && parsed.userId) {
+            return parsed;
+        }
+        localStorage.removeItem('chess_user');
+        return null;
+    } catch (e) {
+        localStorage.removeItem('chess_user');
+        return null;
+    }
+}
+
+function checkSession() {
+    const user = getUserSession();
+    if (!user) {
+        window.location.href = 'index.html';
+        return false;
+    }
+    return true;
+}
+
+// ============================================================
+// ==================== SLIDER =================================
+// ============================================================
+let currentSlide = 0;
+const totalSlides = 5;
+const sliderTrack = document.getElementById('sliderTrack');
+const dots = document.querySelectorAll('.slider-dot');
+
+function goToSlide(index) {
+    currentSlide = index;
+    sliderTrack.style.transform = `translateX(-${index * 20}%)`;
+    dots.forEach((dot, i) => { dot.classList.toggle('active', i === index); });
+}
+
+dots.forEach(dot => {
+    dot.addEventListener('click', () => { goToSlide(parseInt(dot.dataset.index)); });
+});
+
+let slideInterval = setInterval(() => { goToSlide((currentSlide + 1) % totalSlides); }, 5000);
+const sliderContainer = document.querySelector('.slider-container');
+sliderContainer.addEventListener('mouseenter', () => clearInterval(slideInterval));
+sliderContainer.addEventListener('mouseleave', () => {
+    slideInterval = setInterval(() => { goToSlide((currentSlide + 1) % totalSlides); }, 5000);
+});
+
+// ============================================================
+// ==================== TAB NAVIGATION =========================
+// ============================================================
+const tabBtns = document.querySelectorAll('.tab-btn');
+const tabContents = {
+    play: document.getElementById('tabPlay'),
+    challenges: document.getElementById('tabChallenges'),
+    friends: document.getElementById('tabFriends'),
+    stats: document.getElementById('tabStats'),
+    leaderboard: document.getElementById('tabLeaderboard'),
+    history: document.getElementById('tabHistory')
+};
+
+tabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+        tabBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const tab = btn.dataset.tab;
+        Object.keys(tabContents).forEach(key => {
+            tabContents[key].classList.toggle('active', key === tab);
+        });
+        if (tab === 'friends') loadFriendsData();
+        if (tab === 'leaderboard') loadLeaderboard();
+        if (tab === 'challenges') loadChallenges();
+        if (tab === 'history') loadHistory();
+    });
+});
+
+// ============================================================
+// ==================== COPY ID ================================
+// ============================================================
+document.getElementById('userIdDisplay').addEventListener('click', async () => {
+    const userId = document.getElementById('userIdText').textContent;
+    try {
+        await navigator.clipboard.writeText(userId);
+        showToast('✅ ID berhasil disalin!', 'success');
+    } catch (err) {
+        const input = document.createElement('input');
+        input.value = userId;
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand('copy');
+        document.body.removeChild(input);
+        showToast('✅ ID berhasil disalin!', 'success');
+    }
+});
+
+// ============================================================
+// ==================== TOGGLE ONLINE PANEL ====================
+// ============================================================
+document.getElementById('onlineCard').addEventListener('click', () => {
+    const panel = document.getElementById('onlinePanel');
+    panel.classList.toggle('show');
+    if (panel.classList.contains('show')) {
+        loadOnlineFriends();
+    }
+});
+
+document.getElementById('offlineCard').addEventListener('click', () => {
+    document.getElementById('settingsPanel').scrollIntoView({ behavior: 'smooth' });
+});
+
+// ============================================================
+// ==================== ONLINE MODE SELECTION ==================
+// ============================================================
+let selectedMode = 'challenge';
+let isSearching = false;
+let searchInterval = null;
+let refreshInterval = null;
+
+document.querySelectorAll('.online-mode-card').forEach(card => {
+    card.addEventListener('click', () => {
+        document.querySelectorAll('.online-mode-card').forEach(c => c.classList.remove('active'));
+        card.classList.add('active');
+        selectedMode = card.dataset.mode;
+        
+        const btn = document.getElementById('startOnlineBtn');
+        if (selectedMode === 'challenge') {
+            btn.innerHTML = '<i class="fas fa-swords"></i> Tantang Teman';
+            document.getElementById('onlineFriendsList').style.display = 'block';
+        } else {
+            btn.innerHTML = '<i class="fas fa-random"></i> Cari Player';
+            document.getElementById('onlineFriendsList').style.display = 'none';
         }
     });
+});
 
-    // ===== TOGGLE ONLINE PANEL =====
-    document.getElementById('onlineCard').addEventListener('click', () => {
-        const panel = document.getElementById('onlinePanel');
-        panel.classList.toggle('show');
-        if (panel.classList.contains('show')) {
-            loadOnlineFriends();
-        }
-    });
+// ============================================================
+// ==================== GENERATE ROOM ID =======================
+// ============================================================
+function generateRoomId() {
+    return String(Math.floor(10000000 + Math.random() * 90000000));
+}
 
-    document.getElementById('offlineCard').addEventListener('click', () => {
-        document.getElementById('settingsPanel').scrollIntoView({ behavior: 'smooth' });
-    });
+// ============================================================
+// ==================== CREATE CHALLENGE ROOM ==================
+// ============================================================
+async function createChallengeRoom(targetUserId, targetUsername) {
+    if (!checkSession()) return;
+    const user = getUserSession();
+    if (!user) return;
 
-    // ===== ONLINE MODE SELECTION =====
-    let selectedMode = 'challenge';
-    let isSearching = false;
-    let searchInterval = null;
-    let refreshInterval = null;
+    try {
+        const data = await getData();
+        if (!data.rooms) data.rooms = [];
 
-    document.querySelectorAll('.online-mode-card').forEach(card => {
-        card.addEventListener('click', () => {
-            document.querySelectorAll('.online-mode-card').forEach(c => c.classList.remove('active'));
-            card.classList.add('active');
-            selectedMode = card.dataset.mode;
+        const roomId = generateRoomId();
+        const timerEnabled = document.getElementById('onlineTimerToggle').checked;
+        const timerMinutes = parseInt(document.getElementById('onlineTimerMinutes').value) || 5;
+        
+        // Simpan setting timer untuk matchmaking
+        localStorage.setItem('matchmaking_settings', JSON.stringify({
+            timerEnabled: timerEnabled,
+            timerMinutes: timerMinutes
+        }));
+        
+        const room = {
+            roomId: roomId,
+            hostId: user.userId,
+            hostName: user.username,
+            player2Id: targetUserId,
+            player2Name: targetUsername,
+            status: 'waiting',
+            board: null,
+            currentTurn: 'w',
+            castling: {
+                w: { kingSide: true, queenSide: true },
+                b: { kingSide: true, queenSide: true }
+            },
+            enPassantTarget: null,
+            lastMove: null,
+            createdAt: Date.now(),
+            challenge: true,
+            timerEnabled: timerEnabled,
+            timerMinutes: timerMinutes,
+            gameMoves: [],
+            moveTimestamps: [],
+            timeWhite: timerMinutes * 60,
+            timeBlack: timerMinutes * 60,
+            activeTimer: 'w'
+        };
+
+        data.rooms.push(room);
+        await updateData(data);
+
+        const targetUser = data.users.find(u => u.userId === targetUserId);
+        if (targetUser) {
+            if (!targetUser.challenges) targetUser.challenges = [];
+            targetUser.challenges = targetUser.challenges.filter(c => c.fromId !== user.userId);
+            targetUser.challenges.push({
+                roomId: roomId,
+                fromId: user.userId,
+                fromName: user.username,
+                timerEnabled: timerEnabled,
+                timerMinutes: timerMinutes,
+                createdAt: Date.now()
+            });
+            await updateData(data);
             
-            const btn = document.getElementById('startOnlineBtn');
-            if (selectedMode === 'challenge') {
-                btn.innerHTML = '<i class="fas fa-swords"></i> Tantang Teman';
-                document.getElementById('onlineFriendsList').style.display = 'block';
-            } else {
-                btn.innerHTML = '<i class="fas fa-random"></i> Cari Player';
-                document.getElementById('onlineFriendsList').style.display = 'none';
+            if (targetUser.status === 'online') {
+                showToast(`✅ Tantangan dikirim ke ${targetUsername}!`, 'success');
             }
-        });
-    });
+        }
 
-    // ===== GENERATE ROOM ID =====
-    function generateRoomId() {
-        return String(Math.floor(10000000 + Math.random() * 90000000));
+        localStorage.setItem('online_room', JSON.stringify({
+            roomId: roomId,
+            isHost: true
+        }));
+        
+        setTimeout(() => {
+            window.location.href = 'arena-online.html';
+        }, 500);
+
+    } catch (error) {
+        console.error('Error creating challenge:', error);
+        showToast('❌ Gagal mengirim tantangan', 'error');
+    }
+}
+
+// ============================================================
+// ==================== CHALLENGE FRIEND =======================
+// ============================================================
+async function challengeFriend(friendId) {
+    if (!checkSession()) return;
+    const user = getUserSession();
+    if (!user) return;
+
+    try {
+        const data = await getData();
+        const friend = data.users.find(u => u.userId === friendId);
+        if (!friend) {
+            showToast('❌ Teman tidak ditemukan', 'error');
+            return;
+        }
+
+        if (friend.status !== 'online') {
+            showToast('❌ Teman sedang offline', 'error');
+            return;
+        }
+
+        if (data.rooms) {
+            const inRoom = data.rooms.find(r => 
+                (r.hostId === friendId || r.player2Id === friendId) && 
+                (r.status === 'waiting' || r.status === 'playing')
+            );
+            if (inRoom) {
+                showToast('❌ Teman sedang bermain', 'error');
+                return;
+            }
+        }
+
+        await createChallengeRoom(friendId, friend.username);
+
+    } catch (error) {
+        console.error('Error challenging friend:', error);
+        showToast('❌ Gagal mengirim tantangan', 'error');
+    }
+}
+
+// ============================================================
+// ==================== MATCHMAKING ============================
+// ============================================================
+document.getElementById('startOnlineBtn').addEventListener('click', async () => {
+    if (!checkSession()) return;
+    const user = getUserSession();
+    if (!user) return;
+
+    if (selectedMode === 'challenge') {
+        showToast('👆 Pilih teman dari daftar untuk ditantang', 'info');
+        return;
     }
 
-    // ===== CREATE CHALLENGE ROOM =====
-    async function createChallengeRoom(targetUserId, targetUsername) {
-        if (!checkSession()) return;
-        const user = getUserSession();
-        if (!user) return;
+    if (isSearching) {
+        cancelSearch();
+        return;
+    }
 
-        try {
-            const data = await getData();
-            if (!data.rooms) data.rooms = [];
+    const timerEnabled = document.getElementById('onlineTimerToggle').checked;
+    const timerMinutes = parseInt(document.getElementById('onlineTimerMinutes').value) || 5;
+
+    // Simpan setting timer untuk matchmaking
+    localStorage.setItem('matchmaking_settings', JSON.stringify({
+        timerEnabled: timerEnabled,
+        timerMinutes: timerMinutes
+    }));
+
+    try {
+        const data = await getData();
+        if (!data.matchmaking) data.matchmaking = [];
+
+        data.matchmaking = data.matchmaking.filter(m => m.userId !== user.userId);
+
+        const opponent = data.matchmaking.find(m => m.userId !== user.userId);
+
+        if (opponent) {
+            data.matchmaking = data.matchmaking.filter(m => m.userId !== opponent.userId);
+            await updateData(data);
 
             const roomId = generateRoomId();
-            const timerEnabled = document.getElementById('onlineTimerToggle').checked;
-            const timerMinutes = parseInt(document.getElementById('onlineTimerMinutes').value) || 5;
+            const userIsWhite = Math.random() < 0.5;
             
             const room = {
                 roomId: roomId,
-                hostId: user.userId,
-                hostName: user.username,
-                player2Id: targetUserId,
-                player2Name: targetUsername,
-                status: 'waiting',
-                board: null,
+                hostId: userIsWhite ? user.userId : opponent.userId,
+                hostName: userIsWhite ? user.username : opponent.username,
+                player2Id: userIsWhite ? opponent.userId : user.userId,
+                player2Name: userIsWhite ? opponent.username : user.username,
+                status: 'playing',
+                board: createEmptyBoard(),
                 currentTurn: 'w',
                 castling: {
                     w: { kingSide: true, queenSide: true },
@@ -1290,130 +1624,94 @@
                 enPassantTarget: null,
                 lastMove: null,
                 createdAt: Date.now(),
-                challenge: true,
+                challenge: false,
+                matchmaking: true,
                 timerEnabled: timerEnabled,
                 timerMinutes: timerMinutes,
                 gameMoves: [],
-                moveTimestamps: []
+                moveTimestamps: [],
+                timeWhite: timerMinutes * 60,
+                timeBlack: timerMinutes * 60,
+                activeTimer: 'w'
             };
 
+            if (!data.rooms) data.rooms = [];
             data.rooms.push(room);
             await updateData(data);
 
-            // Kirim tantangan ke target user
-            const targetUser = data.users.find(u => u.userId === targetUserId);
-            if (targetUser) {
-                if (!targetUser.challenges) targetUser.challenges = [];
-                // Hapus challenge lama dari user yang sama
-                targetUser.challenges = targetUser.challenges.filter(c => c.fromId !== user.userId);
-                targetUser.challenges.push({
-                    roomId: roomId,
-                    fromId: user.userId,
-                    fromName: user.username,
-                    timerEnabled: timerEnabled,
-                    timerMinutes: timerMinutes,
-                    createdAt: Date.now()
-                });
-                await updateData(data);
-                
-                // Jika target sedang online, refresh challenges mereka
-                if (targetUser.status === 'online') {
-                    showToast(`✅ Tantangan dikirim ke ${targetUsername}!`, 'success');
-                }
-            }
-
-            // Redirect host ke arena online
+            const isHost = user.userId === room.hostId;
             localStorage.setItem('online_room', JSON.stringify({
                 roomId: roomId,
-                isHost: true
+                isHost: isHost
             }));
             
-            // Tunggu sebentar lalu redirect
-            setTimeout(() => {
-                window.location.href = 'arena-online.html';
-            }, 500);
+            showToast(`🎮 Dapat lawan! ${isHost ? 'Anda Putih' : 'Anda Hitam'}`, 'success');
+            window.location.href = 'arena-online.html';
 
-        } catch (error) {
-            console.error('Error creating challenge:', error);
-            showToast('❌ Gagal mengirim tantangan', 'error');
+        } else {
+            data.matchmaking.push({
+                userId: user.userId,
+                username: user.username,
+                timerEnabled: timerEnabled,
+                timerMinutes: timerMinutes,
+                joinedAt: Date.now()
+            });
+            await updateData(data);
+
+            isSearching = true;
+            document.getElementById('startOnlineBtn').innerHTML = '<i class="fas fa-stop"></i> Batal Cari';
+            document.getElementById('startOnlineBtn').className = 'btn-online-action orange';
+            document.getElementById('searchStatus').style.display = 'block';
+            document.getElementById('searchStatus').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mencari pemain...';
+            document.getElementById('cancelSearchBtn').style.display = 'inline-block';
+
+            startMatchmakingPolling();
         }
+
+    } catch (error) {
+        console.error('Error matchmaking:', error);
+        showToast('❌ Gagal mencari player', 'error');
     }
+});
 
-    // ===== CHALLENGE FRIEND =====
-    async function challengeFriend(friendId) {
-        if (!checkSession()) return;
-        const user = getUserSession();
-        if (!user) return;
+function createEmptyBoard() {
+    const b = Array(8).fill().map(() => Array(8).fill(null));
+    const back = ['r','n','b','q','k','b','n','r'];
+    for (let c=0; c<8; c++) {
+        b[0][c] = { type: back[c], color: 'b' };
+        b[1][c] = { type: 'p', color: 'b' };
+        b[6][c] = { type: 'p', color: 'w' };
+        b[7][c] = { type: back[c], color: 'w' };
+    }
+    return b;
+}
 
+let matchmakingPolling = null;
+
+function startMatchmakingPolling() {
+    if (matchmakingPolling) clearInterval(matchmakingPolling);
+    matchmakingPolling = setInterval(async () => {
         try {
+            const user = getUserSession();
+            if (!user) { cancelSearch(); return; }
+
             const data = await getData();
-            const friend = data.users.find(u => u.userId === friendId);
-            if (!friend) {
-                showToast('❌ Teman tidak ditemukan', 'error');
+            const inQueue = data.matchmaking?.find(m => m.userId === user.userId);
+            
+            if (!inQueue) {
+                cancelSearch();
                 return;
             }
 
-            if (friend.status !== 'online') {
-                showToast('❌ Teman sedang offline', 'error');
-                return;
-            }
-
-            // Cek apakah friend sedang dalam room
-            if (data.rooms) {
-                const inRoom = data.rooms.find(r => 
-                    (r.hostId === friendId || r.player2Id === friendId) && 
-                    (r.status === 'waiting' || r.status === 'playing')
-                );
-                if (inRoom) {
-                    showToast('❌ Teman sedang bermain', 'error');
-                    return;
-                }
-            }
-
-            await createChallengeRoom(friendId, friend.username);
-
-        } catch (error) {
-            console.error('Error challenging friend:', error);
-            showToast('❌ Gagal mengirim tantangan', 'error');
-        }
-    }
-
-    // ===== MATCHMAKING =====
-    document.getElementById('startOnlineBtn').addEventListener('click', async () => {
-        if (!checkSession()) return;
-        const user = getUserSession();
-        if (!user) return;
-
-        if (selectedMode === 'challenge') {
-            showToast('👆 Pilih teman dari daftar untuk ditantang', 'info');
-            return;
-        }
-
-        if (isSearching) {
-            cancelSearch();
-            return;
-        }
-
-        const timerEnabled = document.getElementById('onlineTimerToggle').checked;
-        const timerMinutes = parseInt(document.getElementById('onlineTimerMinutes').value) || 5;
-
-        try {
-            const data = await getData();
-            if (!data.matchmaking) data.matchmaking = [];
-
-            // Hapus user dari queue jika sudah ada
-            data.matchmaking = data.matchmaking.filter(m => m.userId !== user.userId);
-
-            // Cari player lain di queue
             const opponent = data.matchmaking.find(m => m.userId !== user.userId);
-
             if (opponent) {
-                // Dapatkan opponent, hapus dari queue
-                data.matchmaking = data.matchmaking.filter(m => m.userId !== opponent.userId);
+                data.matchmaking = data.matchmaking.filter(m => m.userId !== user.userId && m.userId !== opponent.userId);
                 await updateData(data);
 
-                // Buat room otomatis
                 const roomId = generateRoomId();
+                const timerEnabled = document.getElementById('onlineTimerToggle').checked;
+                const timerMinutes = parseInt(document.getElementById('onlineTimerMinutes').value) || 5;
+                
                 const userIsWhite = Math.random() < 0.5;
                 
                 const room = {
@@ -1437,7 +1735,10 @@
                     timerEnabled: timerEnabled,
                     timerMinutes: timerMinutes,
                     gameMoves: [],
-                    moveTimestamps: []
+                    moveTimestamps: [],
+                    timeWhite: timerMinutes * 60,
+                    timeBlack: timerMinutes * 60,
+                    activeTimer: 'w'
                 };
 
                 if (!data.rooms) data.rooms = [];
@@ -1450,832 +1751,917 @@
                     isHost: isHost
                 }));
                 
+                cancelSearch();
                 showToast(`🎮 Dapat lawan! ${isHost ? 'Anda Putih' : 'Anda Hitam'}`, 'success');
                 window.location.href = 'arena-online.html';
-
-            } else {
-                // Tidak ada player, masuk ke queue
-                data.matchmaking.push({
-                    userId: user.userId,
-                    username: user.username,
-                    timerEnabled: timerEnabled,
-                    timerMinutes: timerMinutes,
-                    joinedAt: Date.now()
-                });
-                await updateData(data);
-
-                isSearching = true;
-                document.getElementById('startOnlineBtn').innerHTML = '<i class="fas fa-stop"></i> Batal Cari';
-                document.getElementById('startOnlineBtn').className = 'btn-online-action orange';
-                document.getElementById('searchStatus').style.display = 'block';
-                document.getElementById('searchStatus').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mencari pemain...';
-                document.getElementById('cancelSearchBtn').style.display = 'inline-block';
-
-                startMatchmakingPolling();
             }
 
         } catch (error) {
-            console.error('Error matchmaking:', error);
-            showToast('❌ Gagal mencari player', 'error');
+            console.error('Polling error:', error);
         }
-    });
+    }, 3000);
+}
 
-    function createEmptyBoard() {
-        const b = Array(8).fill().map(() => Array(8).fill(null));
-        const back = ['r','n','b','q','k','b','n','r'];
-        for (let c=0; c<8; c++) {
-            b[0][c] = { type: back[c], color: 'b' };
-            b[1][c] = { type: 'p', color: 'b' };
-            b[6][c] = { type: 'p', color: 'w' };
-            b[7][c] = { type: back[c], color: 'w' };
-        }
-        return b;
+function cancelSearch() {
+    isSearching = false;
+    if (matchmakingPolling) {
+        clearInterval(matchmakingPolling);
+        matchmakingPolling = null;
     }
-
-    let matchmakingPolling = null;
-
-    function startMatchmakingPolling() {
-        if (matchmakingPolling) clearInterval(matchmakingPolling);
-        matchmakingPolling = setInterval(async () => {
-            try {
-                const user = getUserSession();
-                if (!user) { cancelSearch(); return; }
-
-                const data = await getData();
-                const inQueue = data.matchmaking?.find(m => m.userId === user.userId);
-                
-                if (!inQueue) {
-                    cancelSearch();
-                    return;
-                }
-
-                const opponent = data.matchmaking.find(m => m.userId !== user.userId);
-                if (opponent) {
-                    // Ada match!
-                    data.matchmaking = data.matchmaking.filter(m => m.userId !== user.userId && m.userId !== opponent.userId);
-                    await updateData(data);
-
-                    const roomId = generateRoomId();
-                    const timerEnabled = document.getElementById('onlineTimerToggle').checked;
-                    const timerMinutes = parseInt(document.getElementById('onlineTimerMinutes').value) || 5;
-                    
-                    const userIsWhite = Math.random() < 0.5;
-                    
-                    const room = {
-                        roomId: roomId,
-                        hostId: userIsWhite ? user.userId : opponent.userId,
-                        hostName: userIsWhite ? user.username : opponent.username,
-                        player2Id: userIsWhite ? opponent.userId : user.userId,
-                        player2Name: userIsWhite ? opponent.username : user.username,
-                        status: 'playing',
-                        board: createEmptyBoard(),
-                        currentTurn: 'w',
-                        castling: {
-                            w: { kingSide: true, queenSide: true },
-                            b: { kingSide: true, queenSide: true }
-                        },
-                        enPassantTarget: null,
-                        lastMove: null,
-                        createdAt: Date.now(),
-                        challenge: false,
-                        matchmaking: true,
-                        timerEnabled: timerEnabled,
-                        timerMinutes: timerMinutes,
-                        gameMoves: [],
-                        moveTimestamps: []
-                    };
-
-                    if (!data.rooms) data.rooms = [];
-                    data.rooms.push(room);
-                    await updateData(data);
-
-                    const isHost = user.userId === room.hostId;
-                    localStorage.setItem('online_room', JSON.stringify({
-                        roomId: roomId,
-                        isHost: isHost
-                    }));
-                    
-                    cancelSearch();
-                    showToast(`🎮 Dapat lawan! ${isHost ? 'Anda Putih' : 'Anda Hitam'}`, 'success');
-                    window.location.href = 'arena-online.html';
-                }
-
-            } catch (error) {
-                console.error('Polling error:', error);
-            }
-        }, 3000);
-    }
-
-    function cancelSearch() {
-        isSearching = false;
-        if (matchmakingPolling) {
-            clearInterval(matchmakingPolling);
-            matchmakingPolling = null;
-        }
-        document.getElementById('startOnlineBtn').innerHTML = '<i class="fas fa-random"></i> Cari Player';
-        document.getElementById('startOnlineBtn').className = 'btn-online-action green';
-        document.getElementById('searchStatus').style.display = 'none';
-        document.getElementById('cancelSearchBtn').style.display = 'none';
-        
-        (async () => {
-            try {
-                const user = getUserSession();
-                if (!user) return;
-                const data = await getData();
-                if (data.matchmaking) {
-                    data.matchmaking = data.matchmaking.filter(m => m.userId !== user.userId);
-                    await updateData(data);
-                }
-            } catch (e) {}
-        })();
-    }
-
-    document.getElementById('cancelSearchBtn').addEventListener('click', cancelSearch);
-
-    // ===== LOAD ONLINE FRIENDS =====
-    async function loadOnlineFriends() {
-        if (!checkSession()) return;
-        const user = getUserSession();
-        if (!user) return;
-
+    document.getElementById('startOnlineBtn').innerHTML = '<i class="fas fa-random"></i> Cari Player';
+    document.getElementById('startOnlineBtn').className = 'btn-online-action green';
+    document.getElementById('searchStatus').style.display = 'none';
+    document.getElementById('cancelSearchBtn').style.display = 'none';
+    
+    (async () => {
         try {
+            const user = getUserSession();
+            if (!user) return;
             const data = await getData();
-            const currentUser = data.users.find(u => u.userId === user.userId);
-            if (!currentUser) return;
-
-            const friends = currentUser.friends || [];
-            const onlineFriends = data.users.filter(u => 
-                friends.includes(u.userId) && u.status === 'online' && u.userId !== user.userId
-            );
-
-            const container = document.getElementById('onlineFriendsList');
-            if (onlineFriends.length === 0) {
-                container.innerHTML = '<div class="empty-state"><p>Tidak ada teman online</p></div>';
-                container.style.display = 'block';
-                return;
+            if (data.matchmaking) {
+                data.matchmaking = data.matchmaking.filter(m => m.userId !== user.userId);
+                await updateData(data);
             }
+        } catch (e) {}
+    })();
+}
 
-            container.innerHTML = '';
-            onlineFriends.forEach(friend => {
-                const div = document.createElement('div');
-                div.className = 'online-friend-item';
-                div.innerHTML = `
-                    <div class="info">
-                        <div class="avatar">${friend.username.charAt(0).toUpperCase()}</div>
-                        <div class="name">${friend.username}</div>
-                        <div class="status">🟢 Online</div>
-                    </div>
-                    <button class="btn-challenge" onclick="challengeFriend('${friend.userId}')">
-                        <i class="fas fa-swords"></i> Tantang
-                    </button>
-                `;
-                container.appendChild(div);
-            });
+document.getElementById('cancelSearchBtn').addEventListener('click', cancelSearch);
+
+// ============================================================
+// ==================== LOAD ONLINE FRIENDS ====================
+// ============================================================
+async function loadOnlineFriends() {
+    if (!checkSession()) return;
+    const user = getUserSession();
+    if (!user) return;
+
+    try {
+        const data = await getData();
+        const currentUser = data.users.find(u => u.userId === user.userId);
+        if (!currentUser) return;
+
+        const friends = currentUser.friends || [];
+        const onlineFriends = data.users.filter(u => 
+            friends.includes(u.userId) && u.status === 'online' && u.userId !== user.userId
+        );
+
+        const container = document.getElementById('onlineFriendsList');
+        if (onlineFriends.length === 0) {
+            container.innerHTML = '<div class="empty-state"><p>Tidak ada teman online</p></div>';
             container.style.display = 'block';
-
-        } catch (error) {
-            console.error('Error loading online friends:', error);
-        }
-    }
-
-    document.getElementById('refreshOnlineBtn').addEventListener('click', loadOnlineFriends);
-
-    // ===== START AUTO REFRESH =====
-    function startAutoRefresh() {
-        if (refreshInterval) clearInterval(refreshInterval);
-        refreshInterval = setInterval(() => {
-            // Refresh challenges & friend requests
-            if (document.getElementById('tabChallenges').classList.contains('active')) {
-                loadChallenges();
-            }
-            if (document.getElementById('tabFriends').classList.contains('active')) {
-                loadFriendsData();
-            }
-        }, 5000);
-    }
-
-    // ===== LOAD CHALLENGES =====
-    async function loadChallenges() {
-        if (!checkSession()) return;
-        const user = getUserSession();
-        if (!user) return;
-
-        try {
-            const data = await getData();
-            const currentUser = data.users.find(u => u.userId === user.userId);
-            if (!currentUser) return;
-
-            // INISIALISASI CHALLENGES JIKA BELUM ADA
-            if (!currentUser.challenges) {
-                currentUser.challenges = [];
-                await updateData(data);
-            }
-
-            const challenges = currentUser.challenges || [];
-            
-            // Filter challenge yang sudah kadaluarsa
-            const validChallenges = [];
-            for (const challenge of challenges) {
-                const room = data.rooms?.find(r => r.roomId === challenge.roomId);
-                if (room && (room.status === 'waiting' || room.status === 'playing')) {
-                    validChallenges.push(challenge);
-                }
-            }
-            
-            // Update challenges jika ada yang invalid
-            if (validChallenges.length !== challenges.length) {
-                currentUser.challenges = validChallenges;
-                await updateData(data);
-            }
-            
-            // Update badge
-            const badge = document.getElementById('challengeBadge');
-            if (validChallenges.length > 0) {
-                badge.style.display = 'inline';
-                badge.textContent = validChallenges.length;
-            } else {
-                badge.style.display = 'none';
-            }
-
-            const container = document.getElementById('challengeList');
-            if (validChallenges.length === 0) {
-                container.innerHTML = '<div class="empty-state"><p>Tidak ada tantangan</p></div>';
-                return;
-            }
-
-            container.innerHTML = '';
-            for (const challenge of validChallenges) {
-                const sender = data.users.find(u => u.userId === challenge.fromId);
-                if (!sender) continue;
-
-                const room = data.rooms?.find(r => r.roomId === challenge.roomId);
-                const isRoomActive = room && (room.status === 'waiting' || room.status === 'playing');
-
-                const div = document.createElement('div');
-                div.className = 'challenge-item';
-                
-                let actionsHTML = '';
-                if (isRoomActive) {
-                    actionsHTML = `
-                        <button class="btn-sm accept" onclick="acceptChallenge('${challenge.roomId}', '${sender.userId}')"><i class="fas fa-check"></i> Terima</button>
-                        <button class="btn-sm reject" onclick="rejectChallenge('${challenge.roomId}')"><i class="fas fa-times"></i> Tolak</button>
-                    `;
-                } else {
-                    actionsHTML = `<button class="btn-sm pending" disabled><i class="fas fa-clock"></i> Kadaluarsa</button>`;
-                }
-
-                const timerText = challenge.timerEnabled ? `${challenge.timerMinutes} menit` : 'Tanpa timer';
-
-                div.innerHTML = `
-                    <div class="info">
-                        <div class="avatar">${sender.username.charAt(0).toUpperCase()}</div>
-                        <div class="details">
-                            <div class="name">${sender.username}</div>
-                            <div class="challenge-time">⏱️ ${timerText} · ${new Date(challenge.createdAt).toLocaleTimeString()}</div>
-                        </div>
-                    </div>
-                    <div class="actions">
-                        ${actionsHTML}
-                    </div>
-                `;
-                container.appendChild(div);
-            }
-
-        } catch (error) {
-            console.error('Error loading challenges:', error);
-        }
-    }
-
-    // ===== ACCEPT CHALLENGE =====
-    async function acceptChallenge(roomId, senderId) {
-        if (!checkSession()) return;
-        const user = getUserSession();
-        if (!user) return;
-
-        try {
-            const data = await getData();
-            const room = data.rooms?.find(r => r.roomId === roomId);
-            const currentUser = data.users.find(u => u.userId === user.userId);
-
-            if (!room || !currentUser) {
-                showToast('❌ Room tidak tersedia', 'error');
-                loadChallenges();
-                return;
-            }
-
-            if (room.status !== 'waiting') {
-                showToast('❌ Room sudah tidak tersedia', 'error');
-                if (currentUser.challenges) {
-                    currentUser.challenges = currentUser.challenges.filter(c => c.roomId !== roomId);
-                    await updateData(data);
-                }
-                loadChallenges();
-                return;
-            }
-
-            // Update room
-            room.player2Id = user.userId;
-            room.player2Name = user.username;
-            room.status = 'playing';
-            room.board = createEmptyBoard();
-
-            // Hapus challenge dari user
-            if (currentUser.challenges) {
-                currentUser.challenges = currentUser.challenges.filter(c => c.roomId !== roomId);
-            }
-
-            await updateData(data);
-
-            showToast(`✅ Bergabung ke room!`, 'success');
-
-            localStorage.setItem('online_room', JSON.stringify({
-                roomId: roomId,
-                isHost: false
-            }));
-            window.location.href = 'arena-online.html';
-
-        } catch (error) {
-            console.error('Error accepting challenge:', error);
-            showToast('❌ Gagal menerima tantangan', 'error');
-        }
-    }
-
-    // ===== REJECT CHALLENGE =====
-    async function rejectChallenge(roomId) {
-        if (!checkSession()) return;
-        const user = getUserSession();
-        if (!user) return;
-
-        try {
-            const data = await getData();
-            const currentUser = data.users.find(u => u.userId === user.userId);
-            if (currentUser && currentUser.challenges) {
-                currentUser.challenges = currentUser.challenges.filter(c => c.roomId !== roomId);
-                await updateData(data);
-            }
-            showToast('❌ Tantangan ditolak', 'info');
-            loadChallenges();
-
-        } catch (error) {
-            console.error('Error rejecting challenge:', error);
-        }
-    }
-
-    // ===== FRIENDS FUNCTIONS =====
-    async function loadFriendsData() {
-        if (!checkSession()) return;
-        const user = getUserSession();
-        if (!user) return;
-
-        try {
-            const data = await getData();
-            const currentUser = data.users.find(u => u.userId === user.userId);
-            if (!currentUser) return;
-
-            // Friend Requests
-            const requests = currentUser.friendRequests || [];
-            const badge = document.getElementById('friendRequestBadge');
-            if (requests.length > 0) {
-                badge.style.display = 'inline';
-                badge.textContent = requests.length;
-            } else {
-                badge.style.display = 'none';
-            }
-
-            renderFriendRequests(requests, data.users);
-            renderFriendsList(currentUser.friends || [], data.users);
-
-        } catch (error) {
-            console.error('Error loading friends:', error);
-        }
-    }
-
-    function renderFriendRequests(requests, allUsers) {
-        const container = document.getElementById('friendRequestsList');
-        if (requests.length === 0) {
-            container.innerHTML = '<div class="empty-state"><p>Tidak ada permintaan teman</p></div>';
             return;
         }
 
         container.innerHTML = '';
-        requests.forEach(requestId => {
-            const sender = allUsers.find(u => u.userId === requestId);
-            if (!sender) return;
+        onlineFriends.forEach(friend => {
+            const div = document.createElement('div');
+            div.className = 'online-friend-item';
+            div.innerHTML = `
+                <div class="info">
+                    <div class="avatar">${friend.username.charAt(0).toUpperCase()}</div>
+                    <div class="name">${friend.username}</div>
+                    <div class="status">🟢 Online</div>
+                </div>
+                <button class="btn-challenge" onclick="challengeFriend('${friend.userId}')">
+                    <i class="fas fa-swords"></i> Tantang
+                </button>
+            `;
+            container.appendChild(div);
+        });
+        container.style.display = 'block';
+
+    } catch (error) {
+        console.error('Error loading online friends:', error);
+    }
+}
+
+document.getElementById('refreshOnlineBtn').addEventListener('click', loadOnlineFriends);
+
+// ============================================================
+// ==================== LOAD CHALLENGES ========================
+// ============================================================
+async function loadChallenges() {
+    if (!checkSession()) return;
+    const user = getUserSession();
+    if (!user) return;
+
+    try {
+        const data = await getData();
+        const currentUser = data.users.find(u => u.userId === user.userId);
+        if (!currentUser) return;
+
+        if (!currentUser.challenges) {
+            currentUser.challenges = [];
+            await updateData(data);
+        }
+
+        const challenges = currentUser.challenges || [];
+        
+        const validChallenges = [];
+        for (const challenge of challenges) {
+            const room = data.rooms?.find(r => r.roomId === challenge.roomId);
+            if (room && (room.status === 'waiting' || room.status === 'playing')) {
+                validChallenges.push(challenge);
+            }
+        }
+        
+        if (validChallenges.length !== challenges.length) {
+            currentUser.challenges = validChallenges;
+            await updateData(data);
+        }
+        
+        const badge = document.getElementById('challengeBadge');
+        if (validChallenges.length > 0) {
+            badge.style.display = 'inline';
+            badge.textContent = validChallenges.length;
+        } else {
+            badge.style.display = 'none';
+        }
+
+        const container = document.getElementById('challengeList');
+        if (validChallenges.length === 0) {
+            container.innerHTML = '<div class="empty-state"><p>Tidak ada tantangan</p></div>';
+            return;
+        }
+
+        container.innerHTML = '';
+        for (const challenge of validChallenges) {
+            const sender = data.users.find(u => u.userId === challenge.fromId);
+            if (!sender) continue;
+
+            const room = data.rooms?.find(r => r.roomId === challenge.roomId);
+            const isRoomActive = room && (room.status === 'waiting' || room.status === 'playing');
 
             const div = document.createElement('div');
-            div.className = 'friend-item';
+            div.className = 'challenge-item';
+            
+            let actionsHTML = '';
+            if (isRoomActive) {
+                actionsHTML = `
+                    <button class="btn-sm accept" onclick="acceptChallenge('${challenge.roomId}', '${sender.userId}')"><i class="fas fa-check"></i> Terima</button>
+                    <button class="btn-sm reject" onclick="rejectChallenge('${challenge.roomId}')"><i class="fas fa-times"></i> Tolak</button>
+                `;
+            } else {
+                actionsHTML = `<button class="btn-sm pending" disabled><i class="fas fa-clock"></i> Kadaluarsa</button>`;
+            }
+
+            const timerText = challenge.timerEnabled ? `${challenge.timerMinutes} menit` : 'Tanpa timer';
+
             div.innerHTML = `
                 <div class="info">
                     <div class="avatar">${sender.username.charAt(0).toUpperCase()}</div>
                     <div class="details">
                         <div class="name">${sender.username}</div>
-                        <div class="friend-id">ID: ${sender.userId}</div>
-                        <div class="friend-status ${sender.status === 'online' ? 'online' : 'offline'}">
-                            ${sender.status === 'online' ? '🟢 Online' : '⚪ Offline'}
-                        </div>
+                        <div class="challenge-time">⏱️ ${timerText} · ${new Date(challenge.createdAt).toLocaleTimeString()}</div>
                     </div>
                 </div>
                 <div class="actions">
-                    <button class="btn-sm accept" onclick="acceptFriend('${sender.userId}')"><i class="fas fa-check"></i> Terima</button>
-                    <button class="btn-sm reject" onclick="rejectFriend('${sender.userId}')"><i class="fas fa-times"></i> Tolak</button>
+                    ${actionsHTML}
                 </div>
             `;
             container.appendChild(div);
-        });
+        }
+
+    } catch (error) {
+        console.error('Error loading challenges:', error);
+    }
+}
+
+// ============================================================
+// ==================== ACCEPT CHALLENGE =======================
+// ============================================================
+async function acceptChallenge(roomId, senderId) {
+    if (!checkSession()) return;
+    const user = getUserSession();
+    if (!user) return;
+
+    try {
+        const data = await getData();
+        const room = data.rooms?.find(r => r.roomId === roomId);
+        const currentUser = data.users.find(u => u.userId === user.userId);
+
+        if (!room || !currentUser) {
+            showToast('❌ Room tidak tersedia', 'error');
+            loadChallenges();
+            return;
+        }
+
+        if (room.status !== 'waiting') {
+            showToast('❌ Room sudah tidak tersedia', 'error');
+            if (currentUser.challenges) {
+                currentUser.challenges = currentUser.challenges.filter(c => c.roomId !== roomId);
+                await updateData(data);
+            }
+            loadChallenges();
+            return;
+        }
+
+        // Simpan timer settings
+        localStorage.setItem('matchmaking_settings', JSON.stringify({
+            timerEnabled: room.timerEnabled !== undefined ? room.timerEnabled : true,
+            timerMinutes: room.timerMinutes || 5
+        }));
+
+        room.player2Id = user.userId;
+        room.player2Name = user.username;
+        room.status = 'playing';
+        room.board = createEmptyBoard();
+        room.timeWhite = (room.timerMinutes || 5) * 60;
+        room.timeBlack = (room.timerMinutes || 5) * 60;
+
+        if (currentUser.challenges) {
+            currentUser.challenges = currentUser.challenges.filter(c => c.roomId !== roomId);
+        }
+
+        await updateData(data);
+
+        showToast(`✅ Bergabung ke room!`, 'success');
+
+        localStorage.setItem('online_room', JSON.stringify({
+            roomId: roomId,
+            isHost: false
+        }));
+        window.location.href = 'arena-online.html';
+
+    } catch (error) {
+        console.error('Error accepting challenge:', error);
+        showToast('❌ Gagal menerima tantangan', 'error');
+    }
+}
+
+// ============================================================
+// ==================== REJECT CHALLENGE =======================
+// ============================================================
+async function rejectChallenge(roomId) {
+    if (!checkSession()) return;
+    const user = getUserSession();
+    if (!user) return;
+
+    try {
+        const data = await getData();
+        const currentUser = data.users.find(u => u.userId === user.userId);
+        if (currentUser && currentUser.challenges) {
+            currentUser.challenges = currentUser.challenges.filter(c => c.roomId !== roomId);
+            await updateData(data);
+        }
+        showToast('❌ Tantangan ditolak', 'info');
+        loadChallenges();
+
+    } catch (error) {
+        console.error('Error rejecting challenge:', error);
+    }
+}
+
+// ============================================================
+// ==================== FRIENDS FUNCTIONS ======================
+// ============================================================
+async function loadFriendsData() {
+    if (!checkSession()) return;
+    const user = getUserSession();
+    if (!user) return;
+
+    try {
+        const data = await getData();
+        const currentUser = data.users.find(u => u.userId === user.userId);
+        if (!currentUser) return;
+
+        const requests = currentUser.friendRequests || [];
+        const badge = document.getElementById('friendRequestBadge');
+        if (requests.length > 0) {
+            badge.style.display = 'inline';
+            badge.textContent = requests.length;
+        } else {
+            badge.style.display = 'none';
+        }
+
+        renderFriendRequests(requests, data.users);
+        renderFriendsList(currentUser.friends || [], data.users);
+
+    } catch (error) {
+        console.error('Error loading friends:', error);
+    }
+}
+
+function renderFriendRequests(requests, allUsers) {
+    const container = document.getElementById('friendRequestsList');
+    if (requests.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>Tidak ada permintaan teman</p></div>';
+        return;
     }
 
-    function renderFriendsList(friends, allUsers) {
-        const container = document.getElementById('friendsList');
-        if (friends.length === 0) {
-            container.innerHTML = '<div class="empty-state"><i class="fas fa-user-friends"></i><p>Belum ada teman. Cari teman dengan ID di atas!</p></div>';
+    container.innerHTML = '';
+    requests.forEach(requestId => {
+        const sender = allUsers.find(u => u.userId === requestId);
+        if (!sender) return;
+
+        const div = document.createElement('div');
+        div.className = 'friend-item';
+        div.innerHTML = `
+            <div class="info">
+                <div class="avatar">${sender.username.charAt(0).toUpperCase()}</div>
+                <div class="details">
+                    <div class="name">${sender.username}</div>
+                    <div class="friend-id">ID: ${sender.userId}</div>
+                    <div class="friend-status ${sender.status === 'online' ? 'online' : 'offline'}">
+                        ${sender.status === 'online' ? '🟢 Online' : '⚪ Offline'}
+                    </div>
+                </div>
+            </div>
+            <div class="actions">
+                <button class="btn-sm accept" onclick="acceptFriend('${sender.userId}')"><i class="fas fa-check"></i> Terima</button>
+                <button class="btn-sm reject" onclick="rejectFriend('${sender.userId}')"><i class="fas fa-times"></i> Tolak</button>
+            </div>
+        `;
+        container.appendChild(div);
+    });
+}
+
+function renderFriendsList(friends, allUsers) {
+    const container = document.getElementById('friendsList');
+    if (friends.length === 0) {
+        container.innerHTML = '<div class="empty-state"><i class="fas fa-user-friends"></i><p>Belum ada teman. Cari teman dengan ID di atas!</p></div>';
+        return;
+    }
+
+    container.innerHTML = '';
+    friends.forEach(friendId => {
+        const friend = allUsers.find(u => u.userId === friendId);
+        if (!friend) return;
+
+        const div = document.createElement('div');
+        div.className = 'friend-item';
+        div.innerHTML = `
+            <div class="info">
+                <div class="avatar">${friend.username.charAt(0).toUpperCase()}</div>
+                <div class="details">
+                    <div class="name">${friend.username}</div>
+                    <div class="friend-id">ID: ${friend.userId}</div>
+                    <div class="friend-status ${friend.status === 'online' ? 'online' : 'offline'}">
+                        ${friend.status === 'online' ? '🟢 Online' : '⚪ Offline'}
+                    </div>
+                </div>
+            </div>
+            <div class="actions">
+                ${friend.status === 'online' ? `<button class="btn-sm accept" onclick="challengeFriend('${friend.userId}')" style="background:#2f5b8a;color:white;border:1px solid #5a83b5;"><i class="fas fa-swords"></i> Tantang</button>` : ''}
+                <button class="btn-sm remove" onclick="removeFriend('${friend.userId}')"><i class="fas fa-user-minus"></i> Hapus</button>
+            </div>
+        `;
+        container.appendChild(div);
+    });
+}
+
+// ============================================================
+// ==================== FRIEND ACTIONS =========================
+// ============================================================
+async function acceptFriend(senderId) {
+    if (!checkSession()) return;
+    const user = getUserSession();
+    if (!user) return;
+
+    try {
+        const data = await getData();
+        const currentUser = data.users.find(u => u.userId === user.userId);
+        const sender = data.users.find(u => u.userId === senderId);
+        if (!currentUser || !sender) return;
+
+        currentUser.friendRequests = currentUser.friendRequests.filter(id => id !== senderId);
+        if (!currentUser.friends) currentUser.friends = [];
+        if (!currentUser.friends.includes(senderId)) currentUser.friends.push(senderId);
+        if (!sender.friends) sender.friends = [];
+        if (!sender.friends.includes(currentUser.userId)) sender.friends.push(currentUser.userId);
+        if (sender.sentRequests) sender.sentRequests = sender.sentRequests.filter(id => id !== currentUser.userId);
+
+        await updateData(data);
+        showToast(`✅ ${sender.username} sekarang menjadi temanmu!`, 'success');
+        loadFriendsData();
+
+    } catch (error) {
+        showToast('❌ Gagal menerima permintaan', 'error');
+    }
+}
+
+async function rejectFriend(senderId) {
+    if (!checkSession()) return;
+    const user = getUserSession();
+    if (!user) return;
+
+    try {
+        const data = await getData();
+        const currentUser = data.users.find(u => u.userId === user.userId);
+        if (!currentUser) return;
+
+        currentUser.friendRequests = currentUser.friendRequests.filter(id => id !== senderId);
+        await updateData(data);
+        showToast('❌ Permintaan ditolak', 'info');
+        loadFriendsData();
+
+    } catch (error) {
+        showToast('❌ Gagal menolak permintaan', 'error');
+    }
+}
+
+async function removeFriend(friendId) {
+    if (!confirm('Yakin ingin menghapus teman ini?')) return;
+    if (!checkSession()) return;
+    const user = getUserSession();
+    if (!user) return;
+
+    try {
+        const data = await getData();
+        const currentUser = data.users.find(u => u.userId === user.userId);
+        const friend = data.users.find(u => u.userId === friendId);
+        if (!currentUser || !friend) return;
+
+        currentUser.friends = currentUser.friends.filter(id => id !== friendId);
+        friend.friends = friend.friends.filter(id => id !== currentUser.userId);
+
+        await updateData(data);
+        showToast(`🗑️ ${friend.username} dihapus dari teman`, 'info');
+        loadFriendsData();
+
+    } catch (error) {
+        showToast('❌ Gagal menghapus teman', 'error');
+    }
+}
+
+// ============================================================
+// ==================== SEARCH FRIEND ==========================
+// ============================================================
+document.getElementById('searchFriendBtn').addEventListener('click', async () => {
+    if (!checkSession()) return;
+    const input = document.getElementById('searchFriendInput');
+    const userId = input.value.trim();
+    const resultDiv = document.getElementById('searchResult');
+    const resultContent = document.getElementById('resultContent');
+    
+    if (!userId || userId.length !== 8 || !/^\d+$/.test(userId)) {
+        showToast('⚠️ Masukkan ID 8 digit yang valid!', 'error');
+        return;
+    }
+
+    const user = getUserSession();
+    if (!user) return;
+
+    try {
+        const data = await getData();
+        const target = data.users.find(u => u.userId === userId);
+        const currentUser = data.users.find(u => u.userId === user.userId);
+
+        if (!target) {
+            showToast('❌ User dengan ID tersebut tidak ditemukan', 'error');
+            resultDiv.classList.remove('show');
+            return;
+        }
+
+        if (target.userId === currentUser.userId) {
+            showToast('⚠️ Itu ID Anda sendiri!', 'info');
+            resultDiv.classList.remove('show');
+            return;
+        }
+
+        const isFriend = currentUser.friends && currentUser.friends.includes(target.userId);
+        const isRequestSent = currentUser.sentRequests && currentUser.sentRequests.includes(target.userId);
+        const isRequestReceived = currentUser.friendRequests && currentUser.friendRequests.includes(target.userId);
+
+        let btnHTML = '';
+        if (isFriend) {
+            btnHTML = `<button class="btn-add added" disabled><i class="fas fa-check"></i> Sudah Teman</button>`;
+        } else if (isRequestSent) {
+            btnHTML = `<button class="btn-add added" disabled><i class="fas fa-clock"></i> Menunggu</button>`;
+        } else if (isRequestReceived) {
+            btnHTML = `<button class="btn-add" onclick="acceptFriend('${target.userId}')"><i class="fas fa-check"></i> Terima</button>
+                      <button class="btn-sm reject" onclick="rejectFriend('${target.userId}')" style="padding:0.2rem 0.8rem;border-radius:30px;border:none;cursor:pointer;font-size:0.7rem;font-weight:600;background:#ff6b6b;color:white;">Tolak</button>`;
+        } else {
+            btnHTML = `<button class="btn-add" onclick="sendFriendRequest('${target.userId}')"><i class="fas fa-user-plus"></i> Tambah Teman</button>`;
+            if (target.status === 'online') {
+                btnHTML += `<button class="btn-add" onclick="challengeFriend('${target.userId}')" style="background:#3d7a4a;border-color:#5da06b;margin-left:0.3rem;"><i class="fas fa-swords"></i> Tantang</button>`;
+            }
+        }
+
+        const rank = getRank(target.elo || 100);
+        resultContent.innerHTML = `
+            <div class="info">
+                <div class="avatar">${target.username.charAt(0).toUpperCase()}</div>
+                <div class="details">
+                    <div class="name">${target.username}</div>
+                    <div class="friend-id">ID: ${target.userId}</div>
+                    <div class="friend-status ${target.status === 'online' ? 'online' : 'offline'}">
+                        ${target.status === 'online' ? '🟢 Online' : '⚪ Offline'}
+                    </div>
+                    <div class="friend-elo">⭐ ELO: ${target.elo || 100} · ${rank.label}</div>
+                </div>
+            </div>
+            <div class="actions">
+                ${btnHTML}
+            </div>
+        `;
+        resultDiv.classList.add('show');
+
+    } catch (error) {
+        showToast('❌ Gagal mencari user', 'error');
+    }
+});
+
+document.getElementById('searchFriendInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') document.getElementById('searchFriendBtn').click();
+});
+
+async function sendFriendRequest(targetId) {
+    if (!checkSession()) return;
+    const user = getUserSession();
+    if (!user) return;
+
+    try {
+        const data = await getData();
+        const currentUser = data.users.find(u => u.userId === user.userId);
+        const target = data.users.find(u => u.userId === targetId);
+        if (!currentUser || !target) return;
+
+        if (!target.friendRequests) target.friendRequests = [];
+        if (!target.friendRequests.includes(currentUser.userId)) {
+            target.friendRequests.push(currentUser.userId);
+        }
+        if (!currentUser.sentRequests) currentUser.sentRequests = [];
+        if (!currentUser.sentRequests.includes(targetId)) {
+            currentUser.sentRequests.push(targetId);
+        }
+
+        await updateData(data);
+        showToast(`✅ Permintaan teman dikirim ke ${target.username}!`, 'success');
+        document.getElementById('searchResult').classList.remove('show');
+        document.getElementById('searchFriendInput').value = '';
+        loadFriendsData();
+
+    } catch (error) {
+        showToast('❌ Gagal mengirim permintaan', 'error');
+    }
+}
+
+// ============================================================
+// ==================== GET RANK ===============================
+// ============================================================
+function getRank(elo) {
+    if (elo >= 2000) return { label: 'Grandmaster', class: 'grandmaster' };
+    if (elo >= 1700) return { label: 'Master', class: 'master' };
+    if (elo >= 1400) return { label: 'Ahli', class: 'ahli' };
+    if (elo >= 1200) return { label: 'Menengah', class: 'menengah' };
+    return { label: 'Pemula', class: 'pemula' };
+}
+
+// ============================================================
+// ==================== LEADERBOARD ============================
+// ============================================================
+async function loadLeaderboard() {
+    if (!checkSession()) return;
+    try {
+        const data = await getData();
+        const sorted = [...data.users].sort((a, b) => (b.elo || 100) - (a.elo || 100));
+        const list = document.getElementById('leaderboardList');
+        list.innerHTML = '';
+        const medals = ['🥇', '🥈', '🥉'];
+        const user = getUserSession();
+
+        sorted.slice(0, 10).forEach((u, i) => {
+            const div = document.createElement('div');
+            div.className = 'lb-item';
+            const medal = i < 3 ? medals[i] : `#${i+1}`;
+            const isCurrent = user && u.userId === user.userId;
+            const rank = getRank(u.elo || 100);
+
+            div.innerHTML = `
+                <span class="lb-rank">${medal}</span>
+                <span class="lb-avatar">${u.username.charAt(0).toUpperCase()}</span>
+                <span class="lb-name ${isCurrent ? 'highlight' : ''}">
+                    ${u.username} ${isCurrent ? '⭐' : ''}
+                </span>
+                <span class="lb-rank-badge ${rank.class}">${rank.label}</span>
+                <span class="lb-elo">${u.elo || 100}</span>
+            `;
+            list.appendChild(div);
+        });
+    } catch (error) {
+        document.getElementById('leaderboardList').innerHTML = '<div class="loading-text">❌ Gagal memuat leaderboard</div>';
+    }
+}
+
+// ============================================================
+// ==================== RIWAYAT PERMAINAN ======================
+// ============================================================
+async function loadHistory() {
+    if (!checkSession()) return;
+    const user = getUserSession();
+    if (!user) return;
+
+    try {
+        const data = await getData();
+        const container = document.getElementById('historyGameList');
+        
+        // Ambil riwayat dari user
+        const currentUser = data.users.find(u => u.userId === user.userId);
+        if (!currentUser) return;
+
+        const history = currentUser.gameHistory || [];
+        
+        if (history.length === 0) {
+            container.innerHTML = '<div class="empty-state"><i class="fas fa-clock"></i><p>Belum ada riwayat permainan</p></div>';
             return;
         }
 
         container.innerHTML = '';
-        friends.forEach(friendId => {
-            const friend = allUsers.find(u => u.userId === friendId);
-            if (!friend) return;
-
+        // Tampilkan dari yang terbaru
+        history.reverse().forEach((game, index) => {
             const div = document.createElement('div');
-            div.className = 'friend-item';
+            div.className = 'history-game-item';
+            
+            const isWin = game.result === 'win';
+            const isDraw = game.result === 'draw';
+            const resultText = isWin ? '🎉 Menang' : isDraw ? '🤝 Seri' : '💀 Kalah';
+            const resultClass = isWin ? 'win' : isDraw ? 'draw' : 'lose';
+            const eloChange = game.eloChange || 0;
+            const eloClass = eloChange > 0 ? 'positive' : (eloChange < 0 ? 'negative' : '');
+            const eloText = eloChange > 0 ? `+${eloChange}` : `${eloChange}`;
+            
             div.innerHTML = `
-                <div class="info">
-                    <div class="avatar">${friend.username.charAt(0).toUpperCase()}</div>
-                    <div class="details">
-                        <div class="name">${friend.username}</div>
-                        <div class="friend-id">ID: ${friend.userId}</div>
-                        <div class="friend-status ${friend.status === 'online' ? 'online' : 'offline'}">
-                            ${friend.status === 'online' ? '🟢 Online' : '⚪ Offline'}
-                        </div>
-                    </div>
+                <div class="game-info">
+                    <div class="game-result ${resultClass}">${resultText}</div>
+                    <div class="game-opponent"><i class="fas fa-user"></i> ${game.opponent || 'Unknown'}</div>
+                    <div class="game-elo-change ${eloClass}">${eloText} ELO</div>
+                    <div class="game-date"><i class="fas fa-calendar-alt"></i> ${game.date || new Date(game.timestamp).toLocaleDateString()}</div>
                 </div>
-                <div class="actions">
-                    ${friend.status === 'online' ? `<button class="btn-sm accept" onclick="challengeFriend('${friend.userId}')" style="background:#2f5b8a;color:white;border:1px solid #5a83b5;"><i class="fas fa-swords"></i> Tantang</button>` : ''}
-                    <button class="btn-sm remove" onclick="removeFriend('${friend.userId}')"><i class="fas fa-user-minus"></i> Hapus</button>
-                </div>
+                <button class="game-detail-btn" onclick="showHistoryDetail(${index})"><i class="fas fa-eye"></i> Detail</button>
             `;
             container.appendChild(div);
         });
+
+        // Simpan history untuk detail
+        window._historyData = history;
+
+    } catch (error) {
+        console.error('Error loading history:', error);
+        document.getElementById('historyGameList').innerHTML = '<div class="empty-state"><p>❌ Gagal memuat riwayat</p></div>';
+    }
+}
+
+// ============================================================
+// ==================== SHOW HISTORY DETAIL ====================
+// ============================================================
+function showHistoryDetail(index) {
+    const history = window._historyData || [];
+    const game = history[index];
+    if (!game) return;
+
+    const modal = document.getElementById('historyDetailModal');
+    
+    // Set data
+    document.getElementById('historyModalTitle').innerHTML = `<i class="fas fa-chess-queen"></i> Detail Permainan #${index + 1}`;
+    
+    const isWin = game.result === 'win';
+    const isDraw = game.result === 'draw';
+    const resultText = isWin ? '🎉 Menang' : isDraw ? '🤝 Seri' : '💀 Kalah';
+    const resultColor = isWin ? '#7ae0a0' : isDraw ? '#f5c542' : '#ff6b6b';
+    document.getElementById('detailResult').textContent = resultText;
+    document.getElementById('detailResult').style.color = resultColor;
+    document.getElementById('detailOpponent').textContent = game.opponent || 'Unknown';
+    
+    const eloChange = game.eloChange || 0;
+    const eloText = eloChange > 0 ? `+${eloChange}` : `${eloChange}`;
+    const eloColor = eloChange > 0 ? '#7ae0a0' : (eloChange < 0 ? '#ff6b6b' : '#f5c542');
+    document.getElementById('detailEloChange').textContent = eloText;
+    document.getElementById('detailEloChange').style.color = eloColor;
+    
+    document.getElementById('detailDate').textContent = game.date || new Date(game.timestamp).toLocaleString();
+    
+    // Analisis
+    const analysis = game.analysis || {};
+    document.getElementById('detailAccuracy').textContent = (analysis.accuracy || 0) + '%';
+    document.getElementById('detailRating').textContent = analysis.rating || 'Pemula';
+    document.getElementById('detailGoodMoves').textContent = analysis.goodMoves || 0;
+    document.getElementById('detailBlunders').textContent = analysis.blunders || 0;
+    document.getElementById('detailSpeed').textContent = analysis.avgSpeed ? analysis.avgSpeed.toFixed(1) + 's' : '--';
+    document.getElementById('detailTimer').textContent = game.timer ? `${game.timer} menit` : 'Tanpa Timer';
+
+    // Move list
+    const moveList = document.getElementById('detailMoveList');
+    moveList.innerHTML = '';
+    const moves = game.moves || [];
+    if (moves.length === 0) {
+        moveList.innerHTML = '<div style="color:#8aa3c9; text-align:center;">Tidak ada gerakan</div>';
+    } else {
+        let moveNum = 1;
+        let html = '';
+        for (let i = 0; i < moves.length; i += 2) {
+            const white = moves[i];
+            const black = moves[i+1];
+            html += `<div>`;
+            html += `<span class="move-num">${moveNum}.</span>`;
+            html += `<span class="move-white">${white ? white.move : ''}</span>`;
+            if (black) {
+                html += ` <span class="move-black">${black.move}</span>`;
+            }
+            html += `</div>`;
+            moveNum++;
+        }
+        moveList.innerHTML = html;
     }
 
-    // ===== FRIEND ACTIONS =====
-    async function acceptFriend(senderId) {
-        if (!checkSession()) return;
+    modal.classList.add('show');
+}
+
+// ============================================================
+// ==================== CLOSE HISTORY MODAL ====================
+// ============================================================
+document.getElementById('closeHistoryModal').addEventListener('click', () => {
+    document.getElementById('historyDetailModal').classList.remove('show');
+});
+
+document.getElementById('historyDetailModal').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) {
+        document.getElementById('historyDetailModal').classList.remove('show');
+    }
+});
+
+// ============================================================
+// ==================== DISPLAY DASHBOARD ======================
+// ============================================================
+function displayDashboard(userData) {
+    const rank = getRank(userData.elo || 100);
+    document.getElementById('userIdText').textContent = userData.userId || '00000000';
+    document.getElementById('userName').textContent = userData.username;
+    document.getElementById('userElo').textContent = userData.elo || 100;
+    document.getElementById('userRank').textContent = rank.label;
+    document.getElementById('eloStat').textContent = userData.elo || 100;
+    document.getElementById('rankStat').textContent = rank.label;
+    document.getElementById('totalGames').textContent = userData.gamesPlayed || 0;
+    document.getElementById('totalWins').textContent = userData.gamesWon || 0;
+
+    const statusEl = document.getElementById('userStatus');
+    if (userData.status === 'online') {
+        statusEl.className = 'status online';
+        statusEl.textContent = 'Online';
+    } else {
+        statusEl.className = 'status offline';
+        statusEl.textContent = 'Offline';
+    }
+
+    const gamesPlayed = userData.gamesPlayed || 0;
+    const gamesWon = userData.gamesWon || 0;
+    const totalAccuracy = userData.totalAccuracy || 0;
+    const totalSpeed = userData.totalSpeed || 0;
+    const gamesWithStats = userData.gamesWithStats || 0;
+    const currentStreak = userData.currentStreak || 0;
+
+    const winRate = gamesPlayed > 0 ? Math.round((gamesWon / gamesPlayed) * 100) : 0;
+    document.getElementById('winRateStat').textContent = winRate + '%';
+    document.getElementById('winRateBar').style.width = winRate + '%';
+
+    const avgAccuracy = gamesWithStats > 0 ? Math.round(totalAccuracy / gamesWithStats) : 0;
+    document.getElementById('accuracyStat').textContent = avgAccuracy + '%';
+
+    const avgSpeed = gamesWithStats > 0 ? (totalSpeed / gamesWithStats) : 0;
+    document.getElementById('speedStat').textContent = avgSpeed > 0 ? avgSpeed.toFixed(1) + 's' : '--';
+
+    document.getElementById('streakStat').textContent = currentStreak;
+}
+
+// ============================================================
+// ==================== SAVE HISTORY ===========================
+// ============================================================
+async function saveGameHistory(gameData) {
+    try {
         const user = getUserSession();
         if (!user) return;
-
-        try {
-            const data = await getData();
-            const currentUser = data.users.find(u => u.userId === user.userId);
-            const sender = data.users.find(u => u.userId === senderId);
-            if (!currentUser || !sender) return;
-
-            currentUser.friendRequests = currentUser.friendRequests.filter(id => id !== senderId);
-            if (!currentUser.friends) currentUser.friends = [];
-            if (!currentUser.friends.includes(senderId)) currentUser.friends.push(senderId);
-            if (!sender.friends) sender.friends = [];
-            if (!sender.friends.includes(currentUser.userId)) sender.friends.push(currentUser.userId);
-            if (sender.sentRequests) sender.sentRequests = sender.sentRequests.filter(id => id !== currentUser.userId);
-
-            await updateData(data);
-            showToast(`✅ ${sender.username} sekarang menjadi temanmu!`, 'success');
-            loadFriendsData();
-
-        } catch (error) {
-            showToast('❌ Gagal menerima permintaan', 'error');
-        }
-    }
-
-    async function rejectFriend(senderId) {
-        if (!checkSession()) return;
-        const user = getUserSession();
-        if (!user) return;
-
-        try {
-            const data = await getData();
-            const currentUser = data.users.find(u => u.userId === user.userId);
-            if (!currentUser) return;
-
-            currentUser.friendRequests = currentUser.friendRequests.filter(id => id !== senderId);
-            await updateData(data);
-            showToast('❌ Permintaan ditolak', 'info');
-            loadFriendsData();
-
-        } catch (error) {
-            showToast('❌ Gagal menolak permintaan', 'error');
-        }
-    }
-
-    async function removeFriend(friendId) {
-        if (!confirm('Yakin ingin menghapus teman ini?')) return;
-        if (!checkSession()) return;
-        const user = getUserSession();
-        if (!user) return;
-
-        try {
-            const data = await getData();
-            const currentUser = data.users.find(u => u.userId === user.userId);
-            const friend = data.users.find(u => u.userId === friendId);
-            if (!currentUser || !friend) return;
-
-            currentUser.friends = currentUser.friends.filter(id => id !== friendId);
-            friend.friends = friend.friends.filter(id => id !== currentUser.userId);
-
-            await updateData(data);
-            showToast(`🗑️ ${friend.username} dihapus dari teman`, 'info');
-            loadFriendsData();
-
-        } catch (error) {
-            showToast('❌ Gagal menghapus teman', 'error');
-        }
-    }
-
-    // ===== SEARCH FRIEND =====
-    document.getElementById('searchFriendBtn').addEventListener('click', async () => {
-        if (!checkSession()) return;
-        const input = document.getElementById('searchFriendInput');
-        const userId = input.value.trim();
-        const resultDiv = document.getElementById('searchResult');
-        const resultContent = document.getElementById('resultContent');
         
-        if (!userId || userId.length !== 8 || !/^\d+$/.test(userId)) {
-            showToast('⚠️ Masukkan ID 8 digit yang valid!', 'error');
-            return;
-        }
-
-        const user = getUserSession();
-        if (!user) return;
-
-        try {
-            const data = await getData();
-            const target = data.users.find(u => u.userId === userId);
-            const currentUser = data.users.find(u => u.userId === user.userId);
-
-            if (!target) {
-                showToast('❌ User dengan ID tersebut tidak ditemukan', 'error');
-                resultDiv.classList.remove('show');
-                return;
-            }
-
-            if (target.userId === currentUser.userId) {
-                showToast('⚠️ Itu ID Anda sendiri!', 'info');
-                resultDiv.classList.remove('show');
-                return;
-            }
-
-            const isFriend = currentUser.friends && currentUser.friends.includes(target.userId);
-            const isRequestSent = currentUser.sentRequests && currentUser.sentRequests.includes(target.userId);
-            const isRequestReceived = currentUser.friendRequests && currentUser.friendRequests.includes(target.userId);
-
-            let btnHTML = '';
-            if (isFriend) {
-                btnHTML = `<button class="btn-add added" disabled><i class="fas fa-check"></i> Sudah Teman</button>`;
-            } else if (isRequestSent) {
-                btnHTML = `<button class="btn-add added" disabled><i class="fas fa-clock"></i> Menunggu</button>`;
-            } else if (isRequestReceived) {
-                btnHTML = `<button class="btn-add" onclick="acceptFriend('${target.userId}')"><i class="fas fa-check"></i> Terima</button>
-                          <button class="btn-sm reject" onclick="rejectFriend('${target.userId}')" style="padding:0.2rem 0.8rem;border-radius:30px;border:none;cursor:pointer;font-size:0.7rem;font-weight:600;background:#ff6b6b;color:white;">Tolak</button>`;
-            } else {
-                btnHTML = `<button class="btn-add" onclick="sendFriendRequest('${target.userId}')"><i class="fas fa-user-plus"></i> Tambah Teman</button>`;
-                if (target.status === 'online') {
-                    btnHTML += `<button class="btn-add" onclick="challengeFriend('${target.userId}')" style="background:#3d7a4a;border-color:#5da06b;margin-left:0.3rem;"><i class="fas fa-swords"></i> Tantang</button>`;
-                }
-            }
-
-            const rank = getRank(target.elo || 100);
-            resultContent.innerHTML = `
-                <div class="info">
-                    <div class="avatar">${target.username.charAt(0).toUpperCase()}</div>
-                    <div class="details">
-                        <div class="name">${target.username}</div>
-                        <div class="friend-id">ID: ${target.userId}</div>
-                        <div class="friend-status ${target.status === 'online' ? 'online' : 'offline'}">
-                            ${target.status === 'online' ? '🟢 Online' : '⚪ Offline'}
-                        </div>
-                        <div class="friend-elo">⭐ ELO: ${target.elo || 100} · ${rank.label}</div>
-                    </div>
-                </div>
-                <div class="actions">
-                    ${btnHTML}
-                </div>
-            `;
-            resultDiv.classList.add('show');
-
-        } catch (error) {
-            showToast('❌ Gagal mencari user', 'error');
-        }
-    });
-
-    document.getElementById('searchFriendInput').addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') document.getElementById('searchFriendBtn').click();
-    });
-
-    async function sendFriendRequest(targetId) {
-        if (!checkSession()) return;
-        const user = getUserSession();
-        if (!user) return;
-
-        try {
-            const data = await getData();
-            const currentUser = data.users.find(u => u.userId === user.userId);
-            const target = data.users.find(u => u.userId === targetId);
-            if (!currentUser || !target) return;
-
-            if (!target.friendRequests) target.friendRequests = [];
-            if (!target.friendRequests.includes(currentUser.userId)) {
-                target.friendRequests.push(currentUser.userId);
-            }
-            if (!currentUser.sentRequests) currentUser.sentRequests = [];
-            if (!currentUser.sentRequests.includes(targetId)) {
-                currentUser.sentRequests.push(targetId);
-            }
-
-            await updateData(data);
-            showToast(`✅ Permintaan teman dikirim ke ${target.username}!`, 'success');
-            document.getElementById('searchResult').classList.remove('show');
-            document.getElementById('searchFriendInput').value = '';
-            loadFriendsData();
-
-        } catch (error) {
-            showToast('❌ Gagal mengirim permintaan', 'error');
-        }
-    }
-
-    // ===== GET RANK =====
-    function getRank(elo) {
-        if (elo >= 2000) return { label: 'Grandmaster', class: 'grandmaster' };
-        if (elo >= 1700) return { label: 'Master', class: 'master' };
-        if (elo >= 1400) return { label: 'Ahli', class: 'ahli' };
-        if (elo >= 1200) return { label: 'Menengah', class: 'menengah' };
-        return { label: 'Pemula', class: 'pemula' };
-    }
-
-    // ===== LEADERBOARD =====
-    async function loadLeaderboard() {
-        if (!checkSession()) return;
-        try {
-            const data = await getData();
-            const sorted = [...data.users].sort((a, b) => (b.elo || 100) - (a.elo || 100));
-            const list = document.getElementById('leaderboardList');
-            list.innerHTML = '';
-            const medals = ['🥇', '🥈', '🥉'];
-            const user = getUserSession();
-
-            sorted.slice(0, 10).forEach((u, i) => {
-                const div = document.createElement('div');
-                div.className = 'lb-item';
-                const medal = i < 3 ? medals[i] : `#${i+1}`;
-                const isCurrent = user && u.userId === user.userId;
-                const rank = getRank(u.elo || 100);
-
-                div.innerHTML = `
-                    <span class="lb-rank">${medal}</span>
-                    <span class="lb-avatar">${u.username.charAt(0).toUpperCase()}</span>
-                    <span class="lb-name ${isCurrent ? 'highlight' : ''}">
-                        ${u.username} ${isCurrent ? '⭐' : ''}
-                    </span>
-                    <span class="lb-rank-badge ${rank.class}">${rank.label}</span>
-                    <span class="lb-elo">${u.elo || 100}</span>
-                `;
-                list.appendChild(div);
-            });
-        } catch (error) {
-            document.getElementById('leaderboardList').innerHTML = '<div class="loading-text">❌ Gagal memuat leaderboard</div>';
-        }
-    }
-
-    // ===== DISPLAY DASHBOARD =====
-    function displayDashboard(userData) {
-        const rank = getRank(userData.elo || 100);
-        document.getElementById('userIdText').textContent = userData.userId || '00000000';
-        document.getElementById('userName').textContent = userData.username;
-        document.getElementById('userElo').textContent = userData.elo || 100;
-        document.getElementById('userRank').textContent = rank.label;
-        document.getElementById('eloStat').textContent = userData.elo || 100;
-        document.getElementById('rankStat').textContent = rank.label;
-        document.getElementById('totalGames').textContent = userData.gamesPlayed || 0;
-        document.getElementById('totalWins').textContent = userData.gamesWon || 0;
-
-        const statusEl = document.getElementById('userStatus');
-        if (userData.status === 'online') {
-            statusEl.className = 'status online';
-            statusEl.textContent = 'Online';
-        } else {
-            statusEl.className = 'status offline';
-            statusEl.textContent = 'Offline';
-        }
-
-        const gamesPlayed = userData.gamesPlayed || 0;
-        const gamesWon = userData.gamesWon || 0;
-        const totalAccuracy = userData.totalAccuracy || 0;
-        const totalSpeed = userData.totalSpeed || 0;
-        const gamesWithStats = userData.gamesWithStats || 0;
-        const currentStreak = userData.currentStreak || 0;
-
-        const winRate = gamesPlayed > 0 ? Math.round((gamesWon / gamesPlayed) * 100) : 0;
-        document.getElementById('winRateStat').textContent = winRate + '%';
-        document.getElementById('winRateBar').style.width = winRate + '%';
-
-        const avgAccuracy = gamesWithStats > 0 ? Math.round(totalAccuracy / gamesWithStats) : 0;
-        document.getElementById('accuracyStat').textContent = avgAccuracy + '%';
-
-        const avgSpeed = gamesWithStats > 0 ? (totalSpeed / gamesWithStats) : 0;
-        document.getElementById('speedStat').textContent = avgSpeed > 0 ? avgSpeed.toFixed(1) + 's' : '--';
-
-        document.getElementById('streakStat').textContent = currentStreak;
-    }
-
-    // ===== LOAD DASHBOARD =====
-    async function loadDashboard() {
-        console.log('🔄 Loading dashboard...');
+        const data = await getData();
+        const currentUser = data.users.find(u => u.userId === user.userId);
+        if (!currentUser) return;
         
-        if (!checkSession()) return;
+        if (!currentUser.gameHistory) currentUser.gameHistory = [];
+        currentUser.gameHistory.push(gameData);
         
-        const user = getUserSession();
-        if (!user) return;
+        await updateData(data);
+        console.log('✅ Game history saved');
+    } catch (error) {
+        console.error('❌ Error saving history:', error);
+    }
+}
 
-        try {
-            const data = await getData();
-            console.log('📊 Data from JSONBin:', data);
+// ============================================================
+// ==================== LOAD DASHBOARD =========================
+// ============================================================
+async function loadDashboard() {
+    console.log('🔄 Loading dashboard...');
+    
+    if (!checkSession()) return;
+    
+    const user = getUserSession();
+    if (!user) return;
+
+    try {
+        const data = await getData();
+        const currentUser = data.users.find(u => u.userId === user.userId);
+        if (currentUser) {
+            if (currentUser.status !== 'online') {
+                currentUser.status = 'online';
+                await updateData(data);
+            }
             
+            localStorage.setItem('chess_user', JSON.stringify({
+                userId: currentUser.userId,
+                username: currentUser.username,
+                elo: currentUser.elo || 100,
+                rank: currentUser.rank || 'Pemula'
+            }));
+            
+            displayDashboard(currentUser);
+            
+            // Load history jika ada
+            if (currentUser.gameHistory) {
+                window._historyData = currentUser.gameHistory;
+            }
+        } else {
+            localStorage.removeItem('chess_user');
+            window.location.href = 'index.html';
+        }
+    } catch (error) {
+        console.error('❌ Error loading dashboard:', error);
+        showToast('❌ Gagal memuat data', 'error');
+    }
+}
+
+// ============================================================
+// ==================== LOGOUT ================================
+// ============================================================
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+    const user = getUserSession();
+    if (user) {
+        try {
+            const data = await getData();
             const currentUser = data.users.find(u => u.userId === user.userId);
             if (currentUser) {
-                console.log('✅ User ditemukan:', currentUser.username);
-                
-                if (currentUser.status !== 'online') {
-                    currentUser.status = 'online';
-                    await updateData(data);
-                }
-                
-                localStorage.setItem('chess_user', JSON.stringify({
-                    userId: currentUser.userId,
-                    username: currentUser.username,
-                    elo: currentUser.elo || 100,
-                    rank: currentUser.rank || 'Pemula'
-                }));
-                
-                displayDashboard(currentUser);
-                console.log('✅ Dashboard loaded successfully');
-            } else {
-                console.log('❌ User tidak ditemukan di database');
-                localStorage.removeItem('chess_user');
-                window.location.href = 'index.html';
+                currentUser.status = 'offline';
+                await updateData(data);
             }
-        } catch (error) {
-            console.error('❌ Error loading dashboard:', error);
-            showToast('❌ Gagal memuat data', 'error');
-        }
+        } catch (e) {}
     }
+    localStorage.removeItem('chess_user');
+    window.location.href = 'index.html';
+});
 
-    // ===== LOGOUT =====
-    document.getElementById('logoutBtn').addEventListener('click', async () => {
-        const user = getUserSession();
-        if (user) {
-            try {
-                const data = await getData();
-                const currentUser = data.users.find(u => u.userId === user.userId);
-                if (currentUser) {
-                    currentUser.status = 'offline';
-                    await updateData(data);
-                }
-            } catch (e) {}
+// ============================================================
+// ==================== PLAY OFFLINE ===========================
+// ============================================================
+document.getElementById('playOfflineBtn').addEventListener('click', () => {
+    if (!checkSession()) return;
+    const user = getUserSession();
+    if (!user) return;
+
+    const settings = {
+        difficulty: document.getElementById('difficultySelect').value,
+        timerEnabled: document.getElementById('timerToggle').checked,
+        timerMinutes: parseInt(document.getElementById('timerMinutes').value) || 5,
+        username: user.username,
+        elo: user.elo,
+        playerColor: document.getElementById('playerColorSelect').value
+    };
+    localStorage.setItem('game_settings', JSON.stringify(settings));
+    window.location.href = 'arena.html';
+});
+
+// ============================================================
+// ==================== AUTO REFRESH ===========================
+// ============================================================
+function startAutoRefresh() {
+    if (refreshInterval) clearInterval(refreshInterval);
+    refreshInterval = setInterval(() => {
+        if (document.getElementById('tabChallenges').classList.contains('active')) {
+            loadChallenges();
         }
-        localStorage.removeItem('chess_user');
-        window.location.href = 'index.html';
-    });
+        if (document.getElementById('tabFriends').classList.contains('active')) {
+            loadFriendsData();
+        }
+        if (document.getElementById('tabHistory').classList.contains('active')) {
+            loadHistory();
+        }
+    }, 5000);
+}
 
-    // ===== PLAY OFFLINE =====
-    document.getElementById('playOfflineBtn').addEventListener('click', () => {
-        if (!checkSession()) return;
-        const user = getUserSession();
-        if (!user) return;
+// ============================================================
+// ==================== INIT ===================================
+// ============================================================
+console.log('🚀 Dashboard initialized');
+localStorage.removeItem('online_room');
+loadDashboard();
 
-        const settings = {
-            difficulty: document.getElementById('difficultySelect').value,
-            timerEnabled: document.getElementById('timerToggle').checked,
-            timerMinutes: parseInt(document.getElementById('timerMinutes').value) || 5,
-            username: user.username,
-            elo: user.elo,
-            playerColor: document.getElementById('playerColorSelect').value
-        };
-        localStorage.setItem('game_settings', JSON.stringify(settings));
-        window.location.href = 'arena.html';
-    });
+setTimeout(() => {
+    loadFriendsData();
+    loadLeaderboard();
+    loadOnlineFriends();
+    loadChallenges();
+    loadHistory();
+}, 1000);
 
-    // ===== INIT =====
-    console.log('🚀 Dashboard initialized');
-    localStorage.removeItem('online_room');
-    loadDashboard();
-    
-    setTimeout(() => {
-        loadFriendsData();
-        loadLeaderboard();
-        loadOnlineFriends();
-        loadChallenges();
-    }, 1000);
-    
-    // Start auto refresh untuk challenge & friend requests
-    startAutoRefresh();
+startAutoRefresh();
 </script>
 </body>
 </html>
