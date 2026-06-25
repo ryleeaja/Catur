@@ -311,7 +311,7 @@
         .toast.info { background: #2f5b8a; }
         @keyframes slideUp { 0% { transform: translateY(50px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
 
-        /* Timer display */
+        /* Timer display - Chess style */
         .timer-display {
             display: flex;
             justify-content: center;
@@ -329,12 +329,24 @@
             gap: 0.5rem;
             font-weight: 600;
             font-size: 0.9rem;
+            padding: 0.1rem 0.6rem;
+            border-radius: 30px;
+            transition: 0.3s;
         }
         .timer-item .color-dot { width: 12px; height: 12px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.2); }
         .timer-item .color-dot.white { background: #f0f0f0; }
         .timer-item .color-dot.black { background: #222; }
-        .timer-item .time { font-variant-numeric: tabular-nums; min-width: 50px; color: #b3e0a0; }
-        .timer-item.active { background: #1a3050; padding: 0.1rem 0.6rem; border-radius: 30px; border: 1px solid #4a8ad4; }
+        .timer-item .time { 
+            font-variant-numeric: tabular-nums; 
+            min-width: 50px; 
+            color: #b3e0a0;
+            font-weight: 700;
+        }
+        .timer-item.active { 
+            background: #1a3050; 
+            border: 1px solid #4a8ad4; 
+            box-shadow: 0 0 20px rgba(74,138,212,0.15);
+        }
         .timer-item.active .time { color: #7ae0ff; }
         .timer-item.low-time .time { color: #ff6b6b; animation: blink 0.8s ease-in-out infinite; }
         @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
@@ -362,7 +374,7 @@
         </div>
     </div>
 
-    <!-- Timer Display -->
+    <!-- Timer Display - Chess Style -->
     <div class="timer-display" id="timerDisplay">
         <div class="timer-item active" id="timerWhite">
             <span class="color-dot white"></span>
@@ -593,7 +605,7 @@ let moveTimestamps = [];
 let rewardAmount = 0;
 let isProcessing = false;
 
-// Timer variables
+// Timer variables - Chess style (masing-masing player punya waktu sendiri)
 let timerEnabled = true;
 let timerMinutes = 5;
 let timeWhite = 300;
@@ -849,7 +861,7 @@ function makeMove(b, fr, fc, tr, tc, moveData = null) {
 }
 
 // ============================================================
-// ==================== TIMER ==================================
+// ==================== TIMER - CHESS STYLE ====================
 // ============================================================
 function initTimers() {
     const minutes = timerEnabled ? timerMinutes : 0;
@@ -867,6 +879,7 @@ function startTimer() {
         return;
     }
     timerInterval = setInterval(() => {
+        // Hanya waktu yang aktif yang berkurang
         if (activeTimer === 'w') {
             timeWhite--;
             if (timeWhite <= 0) {
@@ -938,6 +951,9 @@ function resetTimers() {
     updateTimerUI();
 }
 
+// ============================================================
+// ==================== HANDLE TIMEOUT =========================
+// ============================================================
 function handleTimeout(color) {
     if (gameOver) return;
     gameOver = true;
@@ -947,16 +963,19 @@ function handleTimeout(color) {
     const user = getUserSession();
     if (!user) return;
     
+    // Jika yang kehabisan waktu adalah user
     const isUser = color === userColor;
     const analysis = analyzeGame(isUser ? 'opponent' : 'user');
     
     if (isUser) {
+        // User kehabisan waktu
         const penalty = 10;
         rewardAmount = -penalty;
         statusText.textContent = `⏰ Waktu habis! Anda kalah -${penalty} ELO`;
         updateUserStats(false, analysis);
         showAnalysisModal(false, false, analysis);
     } else {
+        // Lawan kehabisan waktu
         const reward = 15;
         rewardAmount = reward;
         statusText.textContent = `🎉 Waktu habis! Lawan kalah. Anda menang! +${reward} ELO`;
@@ -1068,7 +1087,7 @@ function onSquareClick(row, col) {
                 updateStatus();
                 saveGameState();
                 
-                // Switch timer
+                // Switch timer ke player selanjutnya
                 switchTimer(currentTurn);
                 
                 const st = gameStatus(board, currentTurn);
@@ -1821,7 +1840,7 @@ function startRefreshLoop() {
 async function init() {
     console.log('🚀 Arena Online initialized');
     
-    // Load matchmaking settings
+    // Load matchmaking settings from localStorage
     const settings = getMatchmakingSettings();
     timerEnabled = settings.timerEnabled !== undefined ? settings.timerEnabled : true;
     timerMinutes = settings.timerMinutes || 5;
@@ -1829,6 +1848,7 @@ async function init() {
     
     const roomSession = getRoomSession();
     if (!roomSession) {
+        console.log('❌ No room session, redirect to dashboard');
         window.location.href = 'dashboard.html';
         return;
     }
@@ -1836,6 +1856,7 @@ async function init() {
     isHost = roomSession.isHost;
     const user = getUserSession();
     if (!user) {
+        console.log('❌ No user session, redirect to login');
         window.location.href = 'index.html';
         return;
     }
