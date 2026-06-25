@@ -311,7 +311,6 @@
         .toast.info { background: #2f5b8a; }
         @keyframes slideUp { 0% { transform: translateY(50px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
 
-        /* Timer display - Chess style */
         .timer-display {
             display: flex;
             justify-content: center;
@@ -403,7 +402,8 @@
 
     <div class="controls-arena">
         <button class="btn-primary btn-danger" id="resignBtn"><i class="fas fa-flag"></i> Menyerah</button>
-     </div>
+        <button class="btn-primary" id="copyRoomBtn"><i class="fas fa-copy"></i> Salin ID Room</button>
+    </div>
     <div class="footer">Bermain Online · Rokade, En Passant, Promosi · Refresh otomatis</div>
 </div>
 
@@ -465,10 +465,11 @@ async function getData() {
         });
         if (!response.ok) throw new Error('HTTP ' + response.status);
         const data = await response.json();
-        return data.record || { users: [], rooms: [], matchmaking: [] };
+        // HAPUS matchmaking & pendingMatches karena tidak digunakan
+        return data.record || { users: [], rooms: [], gameHistory: [] };
     } catch (error) {
         console.error('❌ getData error:', error);
-        return { users: [], rooms: [], matchmaking: [] };
+        return { users: [], rooms: [], gameHistory: [] };
     }
 }
 
@@ -517,16 +518,6 @@ function getRoomSession() {
     } catch (e) {
         return null;
     }
-}
-
-function getMatchmakingSettings() {
-    const data = localStorage.getItem('matchmaking_settings');
-    if (data) {
-        try {
-            return JSON.parse(data);
-        } catch (e) {}
-    }
-    return { timerEnabled: true, timerMinutes: 5 };
 }
 
 function saveUserSession(user) {
@@ -602,8 +593,9 @@ let gameMoves = [];
 let moveTimestamps = [];
 let rewardAmount = 0;
 let isProcessing = false;
+let isDeleting = false;
 
-// Timer variables - Chess style (masing-masing player punya waktu sendiri)
+// Timer variables
 let timerEnabled = true;
 let timerMinutes = 5;
 let timeWhite = 300;
@@ -628,11 +620,30 @@ const promotionModal = document.getElementById('promotionModal');
 const promotionOptions = document.getElementById('promotionOptions');
 const resignBtn = document.getElementById('resignBtn');
 const backBtn = document.getElementById('backToDashboardBtn');
+const copyRoomBtn = document.getElementById('copyRoomBtn');
 const timerInfo = document.getElementById('timerInfo');
 const timeWhiteEl = document.getElementById('timeWhite');
 const timeBlackEl = document.getElementById('timeBlack');
 const timerWhiteEl = document.getElementById('timerWhite');
 const timerBlackEl = document.getElementById('timerBlack');
+
+// ============================================================
+// ==================== COPY ROOM ID ===========================
+// ============================================================
+copyRoomBtn.addEventListener('click', async () => {
+    try {
+        await navigator.clipboard.writeText(roomId);
+        showToast('✅ ID Room disalin!', 'success');
+    } catch (err) {
+        const input = document.createElement('input');
+        input.value = roomId;
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand('copy');
+        document.body.removeChild(input);
+        showToast('✅ ID Room disalin!', 'success');
+    }
+});
 
 // ============================================================
 // ==================== FUNGSI CATUR ===========================
@@ -859,7 +870,7 @@ function makeMove(b, fr, fc, tr, tc, moveData = null) {
 }
 
 // ============================================================
-// ==================== TIMER - CHESS STYLE ====================
+// ==================== TIMER ==================================
 // ============================================================
 function initTimers() {
     const minutes = timerEnabled ? timerMinutes : 0;
@@ -877,7 +888,6 @@ function startTimer() {
         return;
     }
     timerInterval = setInterval(() => {
-        // Hanya waktu yang aktif yang berkurang
         if (activeTimer === 'w') {
             timeWhite--;
             if (timeWhite <= 0) {
@@ -961,19 +971,16 @@ function handleTimeout(color) {
     const user = getUserSession();
     if (!user) return;
     
-    // Jika yang kehabisan waktu adalah user
     const isUser = color === userColor;
     const analysis = analyzeGame(isUser ? 'opponent' : 'user');
     
     if (isUser) {
-        // User kehabisan waktu
         const penalty = 10;
         rewardAmount = -penalty;
         statusText.textContent = `⏰ Waktu habis! Anda kalah -${penalty} ELO`;
         updateUserStats(false, analysis);
         showAnalysisModal(false, false, analysis);
     } else {
-        // Lawan kehabisan waktu
         const reward = 15;
         rewardAmount = reward;
         statusText.textContent = `🎉 Waktu habis! Lawan kalah. Anda menang! +${reward} ELO`;
@@ -1085,7 +1092,6 @@ function onSquareClick(row, col) {
                 updateStatus();
                 saveGameState();
                 
-                // Switch timer ke player selanjutnya
                 switchTimer(currentTurn);
                 
                 const st = gameStatus(board, currentTurn);
@@ -1374,7 +1380,7 @@ async function loadGameState() {
 }
 
 // ============================================================
-// ==================== HANDLE GAME END - FIXED ================
+// ==================== HANDLE GAME END ========================
 // ============================================================
 async function handleGameEnd(isWinner, isStalemate, fromLoad = false) {
     console.log('📊 handleGameEnd:', { isWinner, isStalemate, fromLoad });
@@ -1488,11 +1494,9 @@ async function handleGameEnd(isWinner, isStalemate, fromLoad = false) {
         }
         opponent.gamesPlayed = (opponent.gamesPlayed || 0) + 1;
         
-        // Buat analisis untuk user dan opponent
         const userAnalysis = analyzeGame(isWinner ? 'user' : 'opponent');
         const opponentAnalysis = analyzeGame(isWinner ? 'opponent' : 'user');
         
-        // Tentukan siapa pemenang dan pecundang
         if (isWinner) {
             winnerAnalysis = userAnalysis;
             loserAnalysis = opponentAnalysis;
@@ -1501,7 +1505,6 @@ async function handleGameEnd(isWinner, isStalemate, fromLoad = false) {
             loserAnalysis = userAnalysis;
         }
         
-        // SIMPAN STATS UNTUK USER SAAT INI
         if (isWinner) {
             currentUser.totalAccuracy = (currentUser.totalAccuracy || 0) + (userAnalysis.accuracy || 0);
             currentUser.totalSpeed = (currentUser.totalSpeed || 0) + (userAnalysis.avgSpeed || 0);
@@ -1530,7 +1533,7 @@ async function handleGameEnd(isWinner, isStalemate, fromLoad = false) {
         saveUserSession(currentUser);
         console.log('✅ Stats updated');
         
-        // ===== SAVE HISTORY UNTUK USER SAAT INI =====
+        // Save history untuk user
         await saveGameHistory({
             result: historyResult,
             opponent: opponent.username,
@@ -1544,16 +1547,14 @@ async function handleGameEnd(isWinner, isStalemate, fromLoad = false) {
         });
         console.log(`✅ History saved for ${currentUser.username}: ${historyResult}`);
         
-        // ===== SAVE HISTORY UNTUK OPPONENT =====
+        // Save history untuk opponent
         const opponentHistoryResult = isWinner ? 'lose' : 'win';
         const opponentHistoryEloChange = isWinner ? loserReward : winnerReward;
         const opponentHistoryAnalysis = isWinner ? loserAnalysis : winnerAnalysis;
         
-        // Ambil data terbaru untuk opponent
         const updatedData = await getData();
         const updatedOpponent = updatedData.users.find(u => u.userId === opponent.userId);
         if (updatedOpponent) {
-            // Update stats opponent
             if (isWinner) {
                 updatedOpponent.totalAccuracy = (updatedOpponent.totalAccuracy || 0) + (opponentAnalysis.accuracy || 0);
                 updatedOpponent.totalSpeed = (updatedOpponent.totalSpeed || 0) + (opponentAnalysis.avgSpeed || 0);
@@ -1564,7 +1565,6 @@ async function handleGameEnd(isWinner, isStalemate, fromLoad = false) {
                 updatedOpponent.gamesWithStats = (updatedOpponent.gamesWithStats || 0) + 1;
             }
             
-            // Tambahkan history untuk opponent
             if (!updatedOpponent.gameHistory) updatedOpponent.gameHistory = [];
             updatedOpponent.gameHistory.push({
                 result: opponentHistoryResult,
@@ -1602,7 +1602,6 @@ async function handleGameEnd(isWinner, isStalemate, fromLoad = false) {
         };
         await updateData(data);
         
-        // Save history untuk draw - user
         await saveGameHistory({
             result: 'draw',
             opponent: opponent ? opponent.username : 'Unknown',
@@ -1615,7 +1614,6 @@ async function handleGameEnd(isWinner, isStalemate, fromLoad = false) {
             opponentId: opponent ? opponent.userId : null
         });
         
-        // Save history untuk draw - opponent
         if (opponent) {
             const updatedData = await getData();
             const updatedOpponent = updatedData.users.find(u => u.userId === opponent.userId);
@@ -1645,6 +1643,8 @@ async function handleGameEnd(isWinner, isStalemate, fromLoad = false) {
 // ==================== DELETE ROOM ============================
 // ============================================================
 async function deleteRoom() {
+    if (isDeleting) return;
+    isDeleting = true;
     try {
         const data = await getData();
         const roomIndex = data.rooms?.findIndex(r => r.roomId === roomId);
@@ -1663,6 +1663,8 @@ async function deleteRoom() {
     } catch (error) {
         console.error('❌ deleteRoom error:', error);
         throw error;
+    } finally {
+        isDeleting = false;
     }
 }
 
@@ -1711,7 +1713,7 @@ function showAnalysisModal(isWinner, isStalemate, analysis) {
 }
 
 // ============================================================
-// ==================== RESIGN BUTTON - FIXED ==================
+// ==================== RESIGN BUTTON ==========================
 // ============================================================
 resignBtn.addEventListener('click', async function() {
     console.log('🏳️ Resign clicked');
@@ -1753,53 +1755,43 @@ resignBtn.addEventListener('click', async function() {
 
         console.log(`👤 ${currentUser.username} menyerah kepada ${opponent.username}`);
 
-        // ===== HITUNG ELO =====
         const calc = calculateEloChange(opponent.elo || 100, currentUser.elo || 100);
         const penalty = calc.penalty;
         const reward = calc.reward;
         
-        const loserReward = -penalty; // Yang menyerah (kalah)
-        const winnerReward = reward;  // Opponent (menang)
+        const loserReward = -penalty;
+        const winnerReward = reward;
         
-        // Update ELO
         currentUser.elo = Math.max(0, (currentUser.elo || 100) - penalty);
         opponent.elo = Math.min(3000, (opponent.elo || 100) + reward);
         
         updateRank(currentUser);
         updateRank(opponent);
         
-        // Update stats user (yang menyerah)
         currentUser.gamesPlayed = (currentUser.gamesPlayed || 0) + 1;
         currentUser.currentStreak = 0;
         
-        // Update stats opponent (yang menang)
         opponent.gamesPlayed = (opponent.gamesPlayed || 0) + 1;
         opponent.gamesWon = (opponent.gamesWon || 0) + 1;
         opponent.currentStreak = (opponent.currentStreak || 0) + 1;
         
-        // ===== BUAT ANALISIS UNTUK KEDUA PLAYER =====
-        // Analisis untuk yang menyerah (kalah)
         const userAnalysis = analyzeGame('opponent');
-        // Analisis untuk opponent (menang)
         const opponentAnalysis = analyzeGame('user');
         
-        // Update stats dengan analisis untuk user (yang menyerah)
         currentUser.totalAccuracy = (currentUser.totalAccuracy || 0) + (userAnalysis.accuracy || 0);
         currentUser.totalSpeed = (currentUser.totalSpeed || 0) + (userAnalysis.avgSpeed || 0);
         currentUser.gamesWithStats = (currentUser.gamesWithStats || 0) + 1;
         
-        // Update stats dengan analisis untuk opponent (yang menang)
         opponent.totalAccuracy = (opponent.totalAccuracy || 0) + (opponentAnalysis.accuracy || 0);
         opponent.totalSpeed = (opponent.totalSpeed || 0) + (opponentAnalysis.avgSpeed || 0);
         opponent.gamesWithStats = (opponent.gamesWithStats || 0) + 1;
         
-        // ===== SIMPAN ROOM STATUS =====
         room.status = 'finished';
         room.gameResult = {
             winner: 'opponent',
             isStalemate: false,
-            winnerAnalysis: opponentAnalysis, // Analisis untuk pemenang
-            loserAnalysis: userAnalysis,      // Analisis untuk pecundang
+            winnerAnalysis: opponentAnalysis,
+            loserAnalysis: userAnalysis,
             winnerReward: winnerReward,
             loserReward: loserReward,
             winnerId: opponent.userId,
@@ -1809,7 +1801,6 @@ resignBtn.addEventListener('click', async function() {
         await updateData(data);
         saveUserSession(currentUser);
         
-        // ===== SAVE HISTORY UNTUK USER (YANG MENYERAH / KALAH) =====
         await saveGameHistory({
             result: 'lose',
             opponent: opponent.username,
@@ -1823,12 +1814,9 @@ resignBtn.addEventListener('click', async function() {
         });
         console.log(`✅ History saved for ${currentUser.username}: lose`);
         
-        // ===== SAVE HISTORY UNTUK OPPONENT (YANG MENANG) =====
-        // Ambil data terbaru untuk opponent
         const updatedData = await getData();
         const updatedOpponent = updatedData.users.find(u => u.userId === opponent.userId);
         if (updatedOpponent) {
-            // Tambahkan history untuk opponent
             if (!updatedOpponent.gameHistory) updatedOpponent.gameHistory = [];
             updatedOpponent.gameHistory.push({
                 result: 'win',
@@ -1841,8 +1829,6 @@ resignBtn.addEventListener('click', async function() {
                 timer: timerMinutes,
                 opponentId: currentUser.userId
             });
-            
-            // Update opponent di database
             await updateData(updatedData);
             console.log(`✅ History saved for ${opponent.username}: win`);
         }
@@ -1851,7 +1837,6 @@ resignBtn.addEventListener('click', async function() {
         gameOver = true;
         if (refreshInterval) clearInterval(refreshInterval);
         
-        // ===== TAMPILKAN MODAL UNTUK USER (YANG MENYERAH) =====
         rewardAmount = loserReward;
         showAnalysisModal(false, false, userAnalysis);
         
@@ -1914,7 +1899,6 @@ modalCloseBtn.addEventListener('click', async () => {
     window.location.href = 'dashboard.html';
 });
 
-
 // ============================================================
 // ==================== REFRESH LOOP ===========================
 // ============================================================
@@ -1931,11 +1915,9 @@ function startRefreshLoop() {
 async function init() {
     console.log('🚀 Arena Online initialized');
     
-    // Load matchmaking settings from localStorage
-    const settings = getMatchmakingSettings();
-    timerEnabled = settings.timerEnabled !== undefined ? settings.timerEnabled : true;
-    timerMinutes = settings.timerMinutes || 5;
-    console.log('⏱️ Timer settings:', { timerEnabled, timerMinutes });
+    // Timer default (akan di-override oleh data room)
+    timerEnabled = true;
+    timerMinutes = 5;
     
     const roomSession = getRoomSession();
     if (!roomSession) {
