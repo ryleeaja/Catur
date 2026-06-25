@@ -1635,6 +1635,7 @@ async function challengeFriend(friendId) {
 let matchmakingPolling = null;
 let isRedirecting = false;
 let matchFound = false;
+let matchConfirmOverlay = null;
 
 document.getElementById('startOnlineBtn').addEventListener('click', async () => {
     if (!checkSession()) return;
@@ -1665,11 +1666,9 @@ document.getElementById('startOnlineBtn').addEventListener('click', async () => 
 
         data.matchmaking = data.matchmaking.filter(m => m.userId !== user.userId);
 
-        // Cari player lain di queue dengan status 'waiting'
         const opponent = data.matchmaking.find(m => m.userId !== user.userId && m.status === 'waiting');
 
         if (opponent) {
-            // Lock kedua player
             const userInQueue = data.matchmaking.find(m => m.userId === user.userId);
             const opponentInQueue = data.matchmaking.find(m => m.userId === opponent.userId);
             
@@ -1678,11 +1677,9 @@ document.getElementById('startOnlineBtn').addEventListener('click', async () => 
             
             await updateData(data);
 
-            // Tampilkan popup konfirmasi
             showMatchConfirmation(user, opponent, timerEnabled, timerMinutes);
 
         } else {
-            // Masuk queue dengan status 'waiting'
             data.matchmaking.push({
                 userId: user.userId,
                 username: user.username,
@@ -1713,29 +1710,38 @@ document.getElementById('startOnlineBtn').addEventListener('click', async () => 
 // ==================== SHOW MATCH CONFIRMATION ================
 // ============================================================
 function showMatchConfirmation(user, opponent, timerEnabled, timerMinutes) {
+    if (matchConfirmOverlay) {
+        matchConfirmOverlay.remove();
+        matchConfirmOverlay = null;
+    }
+
     const overlay = document.createElement('div');
     overlay.className = 'match-confirm-overlay';
+    overlay.id = 'matchConfirmOverlay';
     
     const box = document.createElement('div');
     box.className = 'match-confirm-box';
+    
+    const isWhite = Math.random() < 0.5;
+    const colorText = isWhite ? '⚪ Putih' : '⚫ Hitam';
     
     box.innerHTML = `
         <div class="icon">🎮</div>
         <h2>Lawan Ditemukan!</h2>
         <p class="sub"><strong>${opponent.username}</strong> siap bermain dengan Anda</p>
         <p class="detail">
-            ⏱️ ${timerEnabled ? timerMinutes + ' menit' : 'Tanpa Timer'} · 
-            ${Math.random() < 0.5 ? 'Anda Putih' : 'Anda Hitam'}
+            ⏱️ ${timerEnabled ? timerMinutes + ' menit' : 'Tanpa Timer'} · ${colorText}
         </p>
         <div class="btn-group">
             <button class="btn-confirm" id="confirmMatchBtn">✅ Gabung</button>
             <button class="btn-cancel" id="cancelMatchBtn">❌ Batal</button>
         </div>
-        <p class="timeout-text">Jika tidak merespon dalam 10 detik, akan dibatalkan otomatis</p>
+        <p class="timeout-text">⏳ Menunggu konfirmasi dari kedua player...</p>
     `;
     
     overlay.appendChild(box);
     document.body.appendChild(overlay);
+    matchConfirmOverlay = overlay;
     
     let confirmed = false;
     let timeoutId = null;
@@ -1745,12 +1751,28 @@ function showMatchConfirmation(user, opponent, timerEnabled, timerMinutes) {
         confirmed = true;
         if (timeoutId) clearTimeout(timeoutId);
         
+        const confirmBtn = document.getElementById('confirmMatchBtn');
+        const cancelBtn = document.getElementById('cancelMatchBtn');
+        if (confirmBtn) {
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = '⏳ Menunggu...';
+            confirmBtn.style.opacity = '0.5';
+        }
+        if (cancelBtn) {
+            cancelBtn.disabled = true;
+            cancelBtn.style.opacity = '0.5';
+        }
+        
         try {
             const data = await getData();
+            
             const opponentInQueue = data.matchmaking?.find(m => m.userId === opponent.userId);
-            if (!opponentInQueue || opponentInQueue.status !== 'matched') {
-                showToast('❌ Opponent sudah tidak tersedia', 'error');
+            const userInQueue = data.matchmaking?.find(m => m.userId === user.userId);
+            
+            if (!opponentInQueue || opponentInQueue.status !== 'matched' || !userInQueue || userInQueue.status !== 'matched') {
+                showToast('❌ Opponent sudah membatalkan atau match sudah tidak tersedia', 'error');
                 overlay.remove();
+                matchConfirmOverlay = null;
                 cancelSearch();
                 return;
             }
@@ -1800,13 +1822,16 @@ function showMatchConfirmation(user, opponent, timerEnabled, timerMinutes) {
             }));
             
             overlay.remove();
+            matchConfirmOverlay = null;
             showToast(`🎮 Bergabung ke room! ${isHost ? 'Anda Putih' : 'Anda Hitam'}`, 'success');
+            
             window.location.href = 'arena-online.html';
             
         } catch (error) {
             console.error('Error joining match:', error);
-            showToast('❌ Gagal bergabung', 'error');
+            showToast('❌ Gagal bergabung: ' + error.message, 'error');
             overlay.remove();
+            matchConfirmOverlay = null;
             cancelSearch();
         }
     }
@@ -1816,6 +1841,18 @@ function showMatchConfirmation(user, opponent, timerEnabled, timerMinutes) {
         confirmed = true;
         if (timeoutId) clearTimeout(timeoutId);
         
+        const confirmBtn = document.getElementById('confirmMatchBtn');
+        const cancelBtn = document.getElementById('cancelMatchBtn');
+        if (confirmBtn) {
+            confirmBtn.disabled = true;
+            confirmBtn.style.opacity = '0.5';
+        }
+        if (cancelBtn) {
+            cancelBtn.disabled = true;
+            cancelBtn.textContent = '⏳ Membatalkan...';
+            cancelBtn.style.opacity = '0.5';
+        }
+        
         try {
             const data = await getData();
             if (data.matchmaking) {
@@ -1824,9 +1861,12 @@ function showMatchConfirmation(user, opponent, timerEnabled, timerMinutes) {
                 );
                 await updateData(data);
             }
-        } catch (e) {}
+        } catch (e) {
+            console.error('Error cancel match:', e);
+        }
         
         overlay.remove();
+        matchConfirmOverlay = null;
         showToast('❌ Match dibatalkan', 'info');
         cancelSearch();
     }
@@ -1838,7 +1878,9 @@ function showMatchConfirmation(user, opponent, timerEnabled, timerMinutes) {
         if (!confirmed) {
             confirmed = true;
             overlay.remove();
+            matchConfirmOverlay = null;
             showToast('⏰ Waktu habis, match dibatalkan', 'info');
+            
             (async () => {
                 try {
                     const data = await getData();
@@ -1852,7 +1894,7 @@ function showMatchConfirmation(user, opponent, timerEnabled, timerMinutes) {
                 cancelSearch();
             })();
         }
-    }, 10000);
+    }, 15000);
 }
 
 // ============================================================
@@ -1876,6 +1918,7 @@ function startMatchmakingPolling() {
             const data = await getData();
             
             const inQueue = data.matchmaking?.find(m => m.userId === user.userId && m.status === 'waiting');
+            
             if (!inQueue) {
                 const matched = data.matchmaking?.find(m => m.userId === user.userId && m.status === 'matched');
                 if (matched) {
@@ -1922,6 +1965,11 @@ function cancelSearch() {
     isSearching = false;
     isRedirecting = false;
     matchFound = false;
+    
+    if (matchConfirmOverlay) {
+        matchConfirmOverlay.remove();
+        matchConfirmOverlay = null;
+    }
     
     if (matchmakingPolling) {
         clearInterval(matchmakingPolling);
