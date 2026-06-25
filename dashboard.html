@@ -1707,7 +1707,7 @@ document.getElementById('startOnlineBtn').addEventListener('click', async () => 
 });
 
 // ============================================================
-// ==================== SHOW MATCH CONFIRMATION ================
+// ==================== SHOW MATCH CONFIRMATION - FIXED ========
 // ============================================================
 function showMatchConfirmation(user, opponent, timerEnabled, timerMinutes) {
     if (matchConfirmOverlay) {
@@ -1746,6 +1746,9 @@ function showMatchConfirmation(user, opponent, timerEnabled, timerMinutes) {
     let confirmed = false;
     let timeoutId = null;
     
+    // ============================================================
+    // ==================== JOIN MATCH - FIXED ====================
+    // ============================================================
     async function joinMatch() {
         if (confirmed) return;
         confirmed = true;
@@ -1766,17 +1769,48 @@ function showMatchConfirmation(user, opponent, timerEnabled, timerMinutes) {
         try {
             const data = await getData();
             
+            // Cek apakah opponent masih di queue dengan status 'matched'
             const opponentInQueue = data.matchmaking?.find(m => m.userId === opponent.userId);
             const userInQueue = data.matchmaking?.find(m => m.userId === user.userId);
             
-            if (!opponentInQueue || opponentInQueue.status !== 'matched' || !userInQueue || userInQueue.status !== 'matched') {
-                showToast('❌ Opponent sudah membatalkan atau match sudah tidak tersedia', 'error');
+            // Jika opponent sudah tidak ada di queue (sudah bergabung atau batal)
+            if (!opponentInQueue) {
+                // Cek apakah room sudah dibuat (berarti opponent sudah bergabung)
+                const existingRoom = data.rooms?.find(r => 
+                    (r.hostId === user.userId || r.player2Id === user.userId) && 
+                    r.status === 'playing'
+                );
+                
+                if (existingRoom) {
+                    // Room sudah dibuat, langsung join
+                    const isHost = user.userId === existingRoom.hostId;
+                    localStorage.setItem('online_room', JSON.stringify({
+                        roomId: existingRoom.roomId,
+                        isHost: isHost
+                    }));
+                    overlay.remove();
+                    matchConfirmOverlay = null;
+                    showToast(`🎮 Bergabung ke room! ${isHost ? 'Anda Putih' : 'Anda Hitam'}`, 'success');
+                    window.location.href = 'arena-online.html';
+                    return;
+                }
+                
+                showToast('❌ Opponent sudah membatalkan match', 'error');
                 overlay.remove();
                 matchConfirmOverlay = null;
                 cancelSearch();
                 return;
             }
             
+            if (opponentInQueue.status !== 'matched' || !userInQueue || userInQueue.status !== 'matched') {
+                showToast('❌ Match sudah tidak tersedia', 'error');
+                overlay.remove();
+                matchConfirmOverlay = null;
+                cancelSearch();
+                return;
+            }
+            
+            // Hapus kedua player dari queue
             data.matchmaking = data.matchmaking.filter(m => 
                 m.userId !== user.userId && m.userId !== opponent.userId
             );
@@ -1836,6 +1870,9 @@ function showMatchConfirmation(user, opponent, timerEnabled, timerMinutes) {
         }
     }
     
+    // ============================================================
+    // ==================== CANCEL MATCH - FIXED ==================
+    // ============================================================
     async function cancelMatch() {
         if (confirmed) return;
         confirmed = true;
@@ -1856,10 +1893,19 @@ function showMatchConfirmation(user, opponent, timerEnabled, timerMinutes) {
         try {
             const data = await getData();
             if (data.matchmaking) {
+                // Hapus hanya jika masih ada di queue
+                const userInQueue = data.matchmaking.find(m => m.userId === user.userId);
+                const opponentInQueue = data.matchmaking.find(m => m.userId === opponent.userId);
+                
+                // Hapus kedua player dari queue jika masih ada
                 data.matchmaking = data.matchmaking.filter(m => 
                     m.userId !== user.userId && m.userId !== opponent.userId
                 );
-                await updateData(data);
+                
+                // Jika ada yang berubah, update
+                if (userInQueue || opponentInQueue) {
+                    await updateData(data);
+                }
             }
         } catch (e) {
             console.error('Error cancel match:', e);
@@ -1984,6 +2030,9 @@ function startMatchmakingPolling() {
     }, 2000);
 }
 
+// ============================================================
+// ==================== CANCEL SEARCH ==========================
+// ============================================================
 function cancelSearch() {
     isSearching = false;
     isRedirecting = false;
@@ -2022,6 +2071,9 @@ function cancelSearch() {
 
 document.getElementById('cancelSearchBtn').addEventListener('click', cancelSearch);
 
+// ============================================================
+// ==================== CREATE EMPTY BOARD =====================
+// ============================================================
 function createEmptyBoard() {
     const b = Array(8).fill().map(() => Array(8).fill(null));
     const back = ['r','n','b','q','k','b','n','r'];
