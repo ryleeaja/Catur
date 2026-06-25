@@ -1346,7 +1346,7 @@
 </div>
 
 <script>
-// ============================================================
+  // ============================================================
 // ==================== KONFIGURASI ============================
 // ============================================================
 const CONFIG = {
@@ -1422,7 +1422,8 @@ function getUserSession() {
 }
 
 function checkSession() {
-    if (!getUserSession()) {
+    const user = getUserSession();
+    if (!user) {
         window.location.href = 'index.html';
         return false;
     }
@@ -1523,8 +1524,6 @@ document.getElementById('offlineCard').addEventListener('click', () => {
 let selectedMode = 'challenge';
 let isSearching = false;
 let refreshInterval = null;
-let matchCountdown = 30;
-let countdownInterval = null;
 
 document.querySelectorAll('.online-mode-card').forEach(card => {
     card.addEventListener('click', () => {
@@ -1693,6 +1692,8 @@ async function challengeFriend(friendId) {
 // ============================================================
 let matchmakingPolling = null;
 let pendingMatchId = null;
+let countdownInterval = null;
+let matchCountdown = 30;
 
 // Check for pending match invitations
 async function checkPendingMatch() {
@@ -1703,13 +1704,13 @@ async function checkPendingMatch() {
         const data = await getData();
         if (!data.pendingMatches) return;
         
-        // Check if there's a pending match for this user
+        // Cari pending match untuk user ini
         const pending = data.pendingMatches.find(m => 
             m.player1Id === user.userId || m.player2Id === user.userId
         );
         
         if (pending) {
-            // Check if match is still pending and not expired
+            // Cek apakah match masih pending dan belum expired (30 detik)
             if (pending.status === 'pending' && (Date.now() - pending.createdAt) < 30000) {
                 const opponentId = pending.player1Id === user.userId ? pending.player2Id : pending.player1Id;
                 const opponent = data.users.find(u => u.userId === opponentId);
@@ -1719,10 +1720,34 @@ async function checkPendingMatch() {
                     showMatchConfirmation(opponent, pending.timerMinutes, userIsWhite, pending.matchId);
                     return true;
                 }
+            } else if (pending.status === 'confirming') {
+                // Jika sudah dalam status confirming, cek apakah kedua sudah konfirmasi
+                const opponentId = pending.player1Id === user.userId ? pending.player2Id : pending.player1Id;
+                const opponent = data.users.find(u => u.userId === opponentId);
+                
+                if (opponent) {
+                    // Tampilkan popup dengan status menunggu jika belum konfirmasi
+                    const isConfirmed = pending.player1Id === user.userId ? pending.player1Confirmed : pending.player2Confirmed;
+                    
+                    if (!isConfirmed) {
+                        const userIsWhite = pending.player1Id === user.userId ? pending.player1IsWhite : !pending.player1IsWhite;
+                        showMatchConfirmation(opponent, pending.timerMinutes, userIsWhite, pending.matchId);
+                    } else {
+                        // Jika user sudah konfirmasi, tampilkan status menunggu
+                        showMatchWaitingStatus(pending);
+                    }
+                    
+                    // Cek apakah kedua sudah konfirmasi
+                    if (pending.player1Confirmed && pending.player2Confirmed) {
+                        await createRoomFromMatch(pending);
+                        return true;
+                    }
+                }
             } else {
-                // Remove expired or completed match
+                // Remove expired atau completed match
                 data.pendingMatches = data.pendingMatches.filter(m => m.matchId !== pending.matchId);
                 await updateData(data);
+                hideMatchConfirmation();
             }
         }
         return false;
@@ -1732,9 +1757,37 @@ async function checkPendingMatch() {
     }
 }
 
+// Show match waiting status
+function showMatchWaitingStatus(pending) {
+    const overlay = document.getElementById('matchConfirmOverlay');
+    if (!overlay.classList.contains('show')) {
+        overlay.classList.add('show');
+    }
+    
+    document.getElementById('matchSubText').textContent = 'Menunggu konfirmasi dari lawan...';
+    document.getElementById('matchBtnGroup').style.display = 'none';
+    document.getElementById('matchWaitingText').style.display = 'block';
+    document.getElementById('matchWaitingText').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menunggu konfirmasi dari lawan...';
+    
+    const opponentId = pending.player1Id === getUserSession().userId ? pending.player2Id : pending.player1Id;
+    (async () => {
+        const data = await getData();
+        const opponent = data.users.find(u => u.userId === opponentId);
+        if (opponent) {
+            document.getElementById('matchOpponentAvatar').textContent = opponent.username.charAt(0).toUpperCase();
+            document.getElementById('matchOpponentName').textContent = opponent.username;
+            document.getElementById('matchOpponentElo').textContent = `⭐ ELO: ${opponent.elo || 100}`;
+        }
+    })();
+    
+    pendingMatchId = pending.matchId;
+}
+
 // Show match confirmation popup
 function showMatchConfirmation(opponent, timerMinutes, userIsWhite, matchId) {
     const overlay = document.getElementById('matchConfirmOverlay');
+    if (overlay.classList.contains('show') && pendingMatchId === matchId) return;
+    
     document.getElementById('matchOpponentAvatar').textContent = opponent.username.charAt(0).toUpperCase();
     document.getElementById('matchOpponentName').textContent = opponent.username;
     document.getElementById('matchOpponentElo').textContent = `⭐ ELO: ${opponent.elo || 100}`;
@@ -1755,7 +1808,6 @@ function showMatchConfirmation(opponent, timerMinutes, userIsWhite, matchId) {
         document.getElementById('matchCountdown').textContent = matchCountdown;
         if (matchCountdown <= 0) {
             clearInterval(countdownInterval);
-            // Auto cancel if timeout
             cancelMatch(matchId);
         }
     }, 1000);
@@ -1784,12 +1836,89 @@ async function cancelMatch(matchId) {
         }
         hideMatchConfirmation();
         showToast('❌ Pencarian dibatalkan', 'info');
+        cancelSearch();
     } catch (error) {
         console.error('Error canceling match:', error);
     }
 }
 
-// Accept match - both players confirm then create room
+// Create room from confirmed match
+async function createRoomFromMatch(pending) {
+    try {
+        const user = getUserSession();
+        if (!user) return;
+        
+        const data = await getData();
+        const player1 = data.users.find(u => u.userId === pending.player1Id);
+        const player2 = data.users.find(u => u.userId === pending.player2Id);
+        
+        if (!player1 || !player2) {
+            showToast('❌ Salah satu pemain tidak ditemukan', 'error');
+            hideMatchConfirmation();
+            return;
+        }
+        
+        const roomId = generateRoomId();
+        const timerMinutes = pending.timerMinutes || 5;
+        
+        const room = {
+            roomId: roomId,
+            hostId: pending.player1IsWhite ? pending.player1Id : pending.player2Id,
+            hostName: pending.player1IsWhite ? player1.username : player2.username,
+            player2Id: pending.player1IsWhite ? pending.player2Id : pending.player1Id,
+            player2Name: pending.player1IsWhite ? player2.username : player1.username,
+            status: 'playing',
+            board: createEmptyBoard(),
+            currentTurn: 'w',
+            castling: { w: { kingSide: true, queenSide: true }, b: { kingSide: true, queenSide: true } },
+            enPassantTarget: null,
+            lastMove: null,
+            createdAt: Date.now(),
+            challenge: false,
+            matchmaking: true,
+            timerEnabled: true,
+            timerMinutes: timerMinutes,
+            gameMoves: [],
+            moveTimestamps: [],
+            timeWhite: timerMinutes * 60,
+            timeBlack: timerMinutes * 60,
+            activeTimer: 'w'
+        };
+        
+        if (!data.rooms) data.rooms = [];
+        data.rooms.push(room);
+        
+        // Hapus pending match
+        data.pendingMatches = data.pendingMatches.filter(m => m.matchId !== pending.matchId);
+        
+        await updateData(data);
+        
+        // Save room info untuk user ini
+        const userIsHost = room.hostId === user.userId;
+        localStorage.setItem('online_room', JSON.stringify({
+            roomId: roomId,
+            isHost: userIsHost
+        }));
+        
+        localStorage.setItem('matchmaking_settings', JSON.stringify({
+            timerEnabled: true,
+            timerMinutes: timerMinutes
+        }));
+        
+        hideMatchConfirmation();
+        cancelSearch();
+        showToast(`🎮 Masuk ke arena! Anda ${userIsHost ? 'Putih' : 'Hitam'}`, 'success');
+        window.location.href = 'arena-online.html';
+        
+    } catch (error) {
+        console.error('Error creating room from match:', error);
+        showToast('❌ Gagal membuat room', 'error');
+        hideMatchConfirmation();
+        cancelSearch();
+    }
+}
+
+// Accept match
 document.getElementById('matchConfirmBtn').addEventListener('click', async () => {
     if (!pendingMatchId) return;
     
@@ -1807,80 +1936,22 @@ document.getElementById('matchConfirmBtn').addEventListener('click', async () =>
         }
         
         // Mark this player as confirmed
-        const playerKey = pending.player1Id === user.userId ? 'player1Confirmed' : 'player2Confirmed';
-        pending[playerKey] = true;
+        const isPlayer1 = pending.player1Id === user.userId;
+        if (isPlayer1) {
+            pending.player1Confirmed = true;
+        } else {
+            pending.player2Confirmed = true;
+        }
         pending.status = 'confirming';
         
         await updateData(data);
         
-        // Check if both players have confirmed
+        // Cek apakah kedua sudah konfirmasi
         if (pending.player1Confirmed && pending.player2Confirmed) {
-            // Both confirmed - create room!
-            const player1 = data.users.find(u => u.userId === pending.player1Id);
-            const player2 = data.users.find(u => u.userId === pending.player2Id);
-            
-            if (!player1 || !player2) {
-                showToast('❌ Salah satu pemain tidak ditemukan', 'error');
-                hideMatchConfirmation();
-                return;
-            }
-            
-            const roomId = generateRoomId();
-            const timerMinutes = pending.timerMinutes || 5;
-            
-            const room = {
-                roomId: roomId,
-                hostId: pending.player1IsWhite ? pending.player1Id : pending.player2Id,
-                hostName: pending.player1IsWhite ? player1.username : player2.username,
-                player2Id: pending.player1IsWhite ? pending.player2Id : pending.player1Id,
-                player2Name: pending.player1IsWhite ? player2.username : player1.username,
-                status: 'playing',
-                board: createEmptyBoard(),
-                currentTurn: 'w',
-                castling: { w: { kingSide: true, queenSide: true }, b: { kingSide: true, queenSide: true } },
-                enPassantTarget: null,
-                lastMove: null,
-                createdAt: Date.now(),
-                challenge: false,
-                matchmaking: true,
-                timerEnabled: true,
-                timerMinutes: timerMinutes,
-                gameMoves: [],
-                moveTimestamps: [],
-                timeWhite: timerMinutes * 60,
-                timeBlack: timerMinutes * 60,
-                activeTimer: 'w'
-            };
-            
-            if (!data.rooms) data.rooms = [];
-            data.rooms.push(room);
-            
-            // Remove pending match
-            data.pendingMatches = data.pendingMatches.filter(m => m.matchId !== pendingMatchId);
-            
-            await updateData(data);
-            
-            // Save room info
-            const userIsHost = room.hostId === user.userId;
-            localStorage.setItem('online_room', JSON.stringify({
-                roomId: roomId,
-                isHost: userIsHost
-            }));
-            
-            localStorage.setItem('matchmaking_settings', JSON.stringify({
-                timerEnabled: true,
-                timerMinutes: timerMinutes
-            }));
-            
-            hideMatchConfirmation();
-            showToast(`🎮 Masuk ke arena! Anda ${userIsHost ? 'Putih' : 'Hitam'}`, 'success');
-            window.location.href = 'arena-online.html';
-            
+            await createRoomFromMatch(pending);
         } else {
-            // Waiting for other player
-            document.getElementById('matchBtnGroup').style.display = 'none';
-            document.getElementById('matchWaitingText').style.display = 'block';
-            document.getElementById('matchSubText').textContent = 'Menunggu konfirmasi dari lawan...';
+            // Show waiting status
+            showMatchWaitingStatus(pending);
             showToast('⏳ Menunggu konfirmasi dari lawan...', 'info');
         }
         
@@ -1888,6 +1959,7 @@ document.getElementById('matchConfirmBtn').addEventListener('click', async () =>
         console.error('Error accepting match:', error);
         showToast('❌ Gagal bergabung', 'error');
         hideMatchConfirmation();
+        cancelSearch();
     }
 });
 
@@ -1950,7 +2022,7 @@ function startMatchmaking() {
     })();
 }
 
-// Polling for matchmaking
+// Polling untuk matchmaking
 function startMatchmakingPolling() {
     if (matchmakingPolling) clearInterval(matchmakingPolling);
     
@@ -1961,14 +2033,14 @@ function startMatchmakingPolling() {
             
             const data = await getData();
             
-            // Check if user is still in queue
+            // Cek apakah user masih di antrian
             const inQueue = data.matchmaking?.find(m => m.userId === user.userId);
             if (!inQueue) {
                 cancelSearch();
                 return;
             }
             
-            // Find opponent (different user)
+            // Cari lawan (user berbeda)
             const opponent = data.matchmaking.find(m => m.userId !== user.userId);
             if (opponent) {
                 const opponentUser = data.users.find(u => u.userId === opponent.userId);
@@ -1978,17 +2050,17 @@ function startMatchmakingPolling() {
                     return;
                 }
                 
-                // Remove both from matchmaking
+                // Hapus kedua player dari antrian
                 data.matchmaking = data.matchmaking.filter(m => m.userId !== user.userId && m.userId !== opponent.userId);
                 
-                // Create pending match invitation for BOTH players
+                // Buat pending match invitation untuk KEDUA player
                 const matchId = generateRoomId();
                 const userIsWhite = Math.random() < 0.5;
                 const timerMinutes = inQueue.timerMinutes || 5;
                 
                 if (!data.pendingMatches) data.pendingMatches = [];
                 
-                // Remove any existing pending matches for these players
+                // Hapus pending match lama untuk player ini
                 data.pendingMatches = data.pendingMatches.filter(m => 
                     m.player1Id !== user.userId && m.player2Id !== user.userId &&
                     m.player1Id !== opponent.userId && m.player2Id !== opponent.userId
@@ -2010,17 +2082,17 @@ function startMatchmakingPolling() {
                 
                 await updateData(data);
                 
-                // Show confirmation popup for current user
-                showMatchConfirmation(opponentUser, timerMinutes, userIsWhite, matchId);
-                
-                // Stop polling but keep searching status
+                // Hentikan polling - sekarang user akan mendapatkan popup dari checkPendingMatch
                 if (matchmakingPolling) {
                     clearInterval(matchmakingPolling);
                     matchmakingPolling = null;
                 }
                 
-                // Update search status to waiting for opponent
+                // Update status
                 document.getElementById('searchStatus').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menunggu konfirmasi dari lawan...';
+                
+                // Popup akan muncul via checkPendingMatch() yang jalan setiap 3 detik
+                await checkPendingMatch();
             }
             
         } catch (error) {
@@ -2068,6 +2140,13 @@ document.getElementById('startOnlineBtn').addEventListener('click', async () => 
 
     if (isSearching) {
         cancelSearch();
+        return;
+    }
+
+    // Cek apakah ada pending match sebelum mulai mencari
+    const hasPending = await checkPendingMatch();
+    if (hasPending) {
+        showToast('⏳ Anda memiliki tantangan masuk, periksa popup!', 'info');
         return;
     }
 
@@ -2910,9 +2989,26 @@ function startAutoRefresh() {
         if (document.getElementById('tabHistory').classList.contains('active')) {
             loadHistory();
         }
-        // Check for pending matches periodically
+        // Cek pending match setiap 3 detik untuk kedua akun
         if (!document.getElementById('matchConfirmOverlay').classList.contains('show')) {
             checkPendingMatch();
+        } else {
+            // Jika popup sudah terbuka, tetap update status jika perlu
+            const overlay = document.getElementById('matchConfirmOverlay');
+            if (overlay.classList.contains('show')) {
+                (async () => {
+                    const user = getUserSession();
+                    if (!user) return;
+                    const data = await getData();
+                    const pending = data.pendingMatches?.find(m => m.matchId === pendingMatchId);
+                    if (!pending) {
+                        hideMatchConfirmation();
+                        showToast('❌ Match sudah tidak tersedia', 'error');
+                    } else if (pending.player1Confirmed && pending.player2Confirmed) {
+                        await createRoomFromMatch(pending);
+                    }
+                })();
+            }
         }
     }, 3000);
 }
