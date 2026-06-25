@@ -1898,7 +1898,7 @@ function showMatchConfirmation(user, opponent, timerEnabled, timerMinutes) {
 }
 
 // ============================================================
-// ==================== MATCHMAKING POLLING ====================
+// ==================== MATCHMAKING POLLING - FIXED ============
 // ============================================================
 function startMatchmakingPolling() {
     if (matchmakingPolling) clearInterval(matchmakingPolling);
@@ -1917,16 +1917,23 @@ function startMatchmakingPolling() {
 
             const data = await getData();
             
+            // Cek apakah user masih di queue dengan status 'waiting'
             const inQueue = data.matchmaking?.find(m => m.userId === user.userId && m.status === 'waiting');
             
             if (!inQueue) {
+                // Cek jika status berubah menjadi 'matched' (sudah dapat lawan)
                 const matched = data.matchmaking?.find(m => m.userId === user.userId && m.status === 'matched');
                 if (matched) {
+                    // Cari opponent dengan status 'matched'
                     const opponent = data.matchmaking?.find(m => m.userId !== user.userId && m.status === 'matched');
                     if (opponent) {
                         matchFound = true;
                         isRedirecting = true;
+                        
+                        // Hentikan polling
                         cancelSearch();
+                        
+                        // Tampilkan konfirmasi untuk user ini
                         const timerEnabled = document.getElementById('onlineTimerToggle').checked;
                         const timerMinutes = parseInt(document.getElementById('onlineTimerMinutes').value) || 5;
                         showMatchConfirmation(user, opponent, timerEnabled, timerMinutes);
@@ -1937,22 +1944,38 @@ function startMatchmakingPolling() {
                 return;
             }
 
+            // Cari opponent dengan status 'waiting' - TAPI JANGAN LANGSUNG MATCH!
+            // Kita hanya akan menandai bahwa ada opponent, tapi tidak langsung membuat match
             const opponent = data.matchmaking.find(m => m.userId !== user.userId && m.status === 'waiting');
             
             if (opponent) {
-                matchFound = true;
-                isRedirecting = true;
+                // 🔥 KRUSIAL: Cek apakah user ini yang pertama kali menemukan match
+                // Kita gunakan userId sebagai penentu (userId terkecil yang jadi host)
+                // Ini untuk mencegah race condition
+                const userIsHost = user.userId < opponent.userId;
                 
-                const userInQueue = data.matchmaking.find(m => m.userId === user.userId);
-                const opponentInQueue = data.matchmaking.find(m => m.userId === opponent.userId);
-                if (userInQueue) userInQueue.status = 'matched';
-                if (opponentInQueue) opponentInQueue.status = 'matched';
-                
-                await updateData(data);
-                cancelSearch();
-                const timerEnabled = document.getElementById('onlineTimerToggle').checked;
-                const timerMinutes = parseInt(document.getElementById('onlineTimerMinutes').value) || 5;
-                showMatchConfirmation(user, opponent, timerEnabled, timerMinutes);
+                // Hanya user dengan userId terkecil yang boleh menginisiasi match
+                if (userIsHost) {
+                    matchFound = true;
+                    isRedirecting = true;
+                    
+                    // Update status kedua player menjadi 'matched'
+                    const userInQueue = data.matchmaking.find(m => m.userId === user.userId);
+                    const opponentInQueue = data.matchmaking.find(m => m.userId === opponent.userId);
+                    if (userInQueue) userInQueue.status = 'matched';
+                    if (opponentInQueue) opponentInQueue.status = 'matched';
+                    
+                    await updateData(data);
+                    
+                    // Hentikan polling
+                    cancelSearch();
+                    
+                    // Tampilkan konfirmasi untuk HOST (userId terkecil)
+                    const timerEnabled = document.getElementById('onlineTimerToggle').checked;
+                    const timerMinutes = parseInt(document.getElementById('onlineTimerMinutes').value) || 5;
+                    showMatchConfirmation(user, opponent, timerEnabled, timerMinutes);
+                }
+                // Jika user bukan host, biarkan polling berjalan sampai status berubah menjadi 'matched'
             }
 
         } catch (error) {
