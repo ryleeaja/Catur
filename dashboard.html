@@ -1630,12 +1630,8 @@ async function challengeFriend(friendId) {
 }
 
 // ============================================================
-// ==================== MATCHMAKING - LIKE CHALLENGE ==========
+// ==================== MATCHMAKING ============================
 // ============================================================
-let matchmakingPolling = null;
-let isSearching = false;
-let matchFound = false;
-
 document.getElementById('startOnlineBtn').addEventListener('click', async () => {
     if (!checkSession()) return;
     const user = getUserSession();
@@ -1663,18 +1659,14 @@ document.getElementById('startOnlineBtn').addEventListener('click', async () => 
         const data = await getData();
         if (!data.matchmaking) data.matchmaking = [];
 
-        // Hapus user dari queue jika sudah ada
         data.matchmaking = data.matchmaking.filter(m => m.userId !== user.userId);
 
-        // Cari player lain di queue
         const opponent = data.matchmaking.find(m => m.userId !== user.userId);
 
         if (opponent) {
-            // ===== KETEMU OPPONENT! HOST BUAT ROOM =====
-            // Hapus opponent dari queue
             data.matchmaking = data.matchmaking.filter(m => m.userId !== opponent.userId);
-            
-            // Buat room (SAMA PERSIS dengan createChallengeRoom)
+            await updateData(data);
+
             const roomId = generateRoomId();
             const userIsWhite = Math.random() < 0.5;
             
@@ -1684,7 +1676,7 @@ document.getElementById('startOnlineBtn').addEventListener('click', async () => 
                 hostName: userIsWhite ? user.username : opponent.username,
                 player2Id: userIsWhite ? opponent.userId : user.userId,
                 player2Name: userIsWhite ? opponent.username : user.username,
-                status: 'waiting', // STATUS WAITING, BUKAN PLAYING!
+                status: 'playing',
                 board: createEmptyBoard(),
                 currentTurn: 'w',
                 castling: {
@@ -1709,29 +1701,6 @@ document.getElementById('startOnlineBtn').addEventListener('click', async () => 
             data.rooms.push(room);
             await updateData(data);
 
-            // Kirim tantangan ke opponent (SAMA PERSIS dengan challenge)
-            const opponentUser = data.users.find(u => u.userId === opponent.userId);
-            if (opponentUser) {
-                if (!opponentUser.challenges) opponentUser.challenges = [];
-                // Hapus challenge lama dari user yang sama
-                opponentUser.challenges = opponentUser.challenges.filter(c => c.fromId !== user.userId);
-                opponentUser.challenges.push({
-                    roomId: roomId,
-                    fromId: user.userId,
-                    fromName: user.username,
-                    timerEnabled: timerEnabled,
-                    timerMinutes: timerMinutes,
-                    createdAt: Date.now(),
-                    matchmaking: true // Tanda ini dari matchmaking
-                });
-                await updateData(data);
-                
-                if (opponentUser.status === 'online') {
-                    showToast(`✅ Lawan ditemukan! Mengirim tantangan...`, 'success');
-                }
-            }
-
-            // HOST LANGSUNG MASUK ARENA
             const isHost = user.userId === room.hostId;
             localStorage.setItem('online_room', JSON.stringify({
                 roomId: roomId,
@@ -1742,7 +1711,6 @@ document.getElementById('startOnlineBtn').addEventListener('click', async () => 
             window.location.href = 'arena-online.html';
 
         } else {
-            // ===== MASUK QUEUE =====
             data.matchmaking.push({
                 userId: user.userId,
                 username: user.username,
@@ -1768,48 +1736,44 @@ document.getElementById('startOnlineBtn').addEventListener('click', async () => 
     }
 });
 
-// ============================================================
-// ==================== MATCHMAKING POLLING ====================
-// ============================================================
+function createEmptyBoard() {
+    const b = Array(8).fill().map(() => Array(8).fill(null));
+    const back = ['r','n','b','q','k','b','n','r'];
+    for (let c=0; c<8; c++) {
+        b[0][c] = { type: back[c], color: 'b' };
+        b[1][c] = { type: 'p', color: 'b' };
+        b[6][c] = { type: 'p', color: 'w' };
+        b[7][c] = { type: back[c], color: 'w' };
+    }
+    return b;
+}
+
+let matchmakingPolling = null;
+
 function startMatchmakingPolling() {
     if (matchmakingPolling) clearInterval(matchmakingPolling);
-    matchFound = false;
-    
     matchmakingPolling = setInterval(async () => {
         try {
-            if (matchFound) return;
-            
             const user = getUserSession();
-            if (!user) { 
-                cancelSearch(); 
-                return; 
-            }
+            if (!user) { cancelSearch(); return; }
 
             const data = await getData();
-            
-            // Cek apakah user masih di queue
             const inQueue = data.matchmaking?.find(m => m.userId === user.userId);
+            
             if (!inQueue) {
                 cancelSearch();
                 return;
             }
 
-            // Cari opponent
             const opponent = data.matchmaking.find(m => m.userId !== user.userId);
-            
             if (opponent) {
-                matchFound = true;
-                
-                // Hapus kedua player dari queue
-                data.matchmaking = data.matchmaking.filter(m => 
-                    m.userId !== user.userId && m.userId !== opponent.userId
-                );
-                
+                data.matchmaking = data.matchmaking.filter(m => m.userId !== user.userId && m.userId !== opponent.userId);
+                await updateData(data);
+
+                const roomId = generateRoomId();
                 const timerEnabled = document.getElementById('onlineTimerToggle').checked;
                 const timerMinutes = parseInt(document.getElementById('onlineTimerMinutes').value) || 5;
                 
-                // BUAT ROOM (SAMA PERSIS dengan createChallengeRoom)
-                const roomId = generateRoomId();
                 const userIsWhite = Math.random() < 0.5;
                 
                 const room = {
@@ -1818,7 +1782,7 @@ function startMatchmakingPolling() {
                     hostName: userIsWhite ? user.username : opponent.username,
                     player2Id: userIsWhite ? opponent.userId : user.userId,
                     player2Name: userIsWhite ? opponent.username : user.username,
-                    status: 'waiting', // STATUS WAITING
+                    status: 'playing',
                     board: createEmptyBoard(),
                     currentTurn: 'w',
                     castling: {
@@ -1841,35 +1805,15 @@ function startMatchmakingPolling() {
 
                 if (!data.rooms) data.rooms = [];
                 data.rooms.push(room);
-                
-                // Kirim tantangan ke opponent
-                const opponentUser = data.users.find(u => u.userId === opponent.userId);
-                if (opponentUser) {
-                    if (!opponentUser.challenges) opponentUser.challenges = [];
-                    opponentUser.challenges = opponentUser.challenges.filter(c => c.fromId !== user.userId);
-                    opponentUser.challenges.push({
-                        roomId: roomId,
-                        fromId: user.userId,
-                        fromName: user.username,
-                        timerEnabled: timerEnabled,
-                        timerMinutes: timerMinutes,
-                        createdAt: Date.now(),
-                        matchmaking: true
-                    });
-                }
-                
                 await updateData(data);
 
-                // HOST LANGSUNG MASUK ARENA
                 const isHost = user.userId === room.hostId;
                 localStorage.setItem('online_room', JSON.stringify({
                     roomId: roomId,
                     isHost: isHost
                 }));
                 
-                // Hentikan polling
                 cancelSearch();
-                
                 showToast(`🎮 Dapat lawan! ${isHost ? 'Anda Putih' : 'Anda Hitam'}`, 'success');
                 window.location.href = 'arena-online.html';
             }
@@ -1882,20 +1826,15 @@ function startMatchmakingPolling() {
 
 function cancelSearch() {
     isSearching = false;
-    matchFound = false;
-    
     if (matchmakingPolling) {
         clearInterval(matchmakingPolling);
         matchmakingPolling = null;
     }
-    
     document.getElementById('startOnlineBtn').innerHTML = '<i class="fas fa-random"></i> Cari Player';
     document.getElementById('startOnlineBtn').className = 'btn-online-action green';
     document.getElementById('searchStatus').style.display = 'none';
-    document.getElementById('searchStatus').innerHTML = '';
     document.getElementById('cancelSearchBtn').style.display = 'none';
     
-    // Hapus user dari queue
     (async () => {
         try {
             const user = getUserSession();
@@ -1905,25 +1844,11 @@ function cancelSearch() {
                 data.matchmaking = data.matchmaking.filter(m => m.userId !== user.userId);
                 await updateData(data);
             }
-        } catch (e) {
-            console.error('Error cancel search:', e);
-        }
+        } catch (e) {}
     })();
 }
 
 document.getElementById('cancelSearchBtn').addEventListener('click', cancelSearch);
-
-function createEmptyBoard() {
-    const b = Array(8).fill().map(() => Array(8).fill(null));
-    const back = ['r','n','b','q','k','b','n','r'];
-    for (let c=0; c<8; c++) {
-        b[0][c] = { type: back[c], color: 'b' };
-        b[1][c] = { type: 'p', color: 'b' };
-        b[6][c] = { type: 'p', color: 'w' };
-        b[7][c] = { type: back[c], color: 'w' };
-    }
-    return b;
-}
 
 // ============================================================
 // ==================== LOAD ONLINE FRIENDS ====================
