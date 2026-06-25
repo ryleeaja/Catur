@@ -1,0 +1,2281 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Dashboard · Catur Elite</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Roboto, sans-serif; }
+        body {
+            min-height: 100vh;
+            background: #0a111f;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+        }
+        .dashboard-container {
+            max-width: 1100px;
+            width: 100%;
+            background: #141e30;
+            border-radius: 2.5rem;
+            padding: 1.8rem;
+            border: 1px solid #2a3f5a;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.8);
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 1.2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #1f3148;
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1.2rem;
+            flex-wrap: wrap;
+        }
+        .header-left h1 { color: #e8f0ff; font-size: 1.5rem; }
+        .header-left h1 i { color: #f5c542; }
+        .user-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            background: #0f1a2b;
+            padding: 0.3rem 1rem 0.3rem 0.8rem;
+            border-radius: 50px;
+            border: 1px solid #2a405a;
+            flex-wrap: wrap;
+        }
+        .user-badge .user-id {
+            color: #5a7394;
+            font-size: 0.65rem;
+            background: #0a111f;
+            padding: 0.05rem 0.5rem;
+            border-radius: 30px;
+            border: 1px solid #2a405a;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .user-badge .user-id:hover { border-color: #7aa9ff; color: #b6cef0; }
+        .user-badge .user-id i { margin-right: 3px; }
+        .user-badge .name { color: #b6cef0; font-weight: 600; font-size: 0.9rem; }
+        .user-badge .elo { color: #f5d742; font-weight: 700; font-size: 1rem; }
+        .user-badge .rank {
+            color: #7ae0a0;
+            font-size: 0.7rem;
+            background: #0b1422;
+            padding: 0.05rem 0.6rem;
+            border-radius: 30px;
+            border: 1px solid #4a8a5a;
+        }
+        .user-badge .status {
+            font-size: 0.55rem;
+            padding: 0.05rem 0.6rem;
+            border-radius: 30px;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+        .user-badge .status.online { background: #51cf66; color: #0a111f; }
+        .user-badge .status.offline { background: #5a7394; color: #e8f0ff; }
+        .btn-logout {
+            background: #6d4c41;
+            border: none;
+            color: white;
+            padding: 0.4rem 1.2rem;
+            border-radius: 40px;
+            cursor: pointer;
+            font-weight: 600;
+            border: 1px solid #8d6b5e;
+            transition: 0.2s;
+        }
+        .btn-logout:hover { background: #8f6657; transform: scale(1.02); }
+
+        .slider-container {
+            position: relative;
+            width: 100%;
+            height: 140px;
+            border-radius: 1.5rem;
+            overflow: hidden;
+            margin-bottom: 1.2rem;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.5);
+        }
+        .slider-track {
+            display: flex;
+            width: 500%;
+            height: 100%;
+            transition: transform 0.7s ease-in-out;
+        }
+        .slider-slide {
+            width: 20%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: white;
+            text-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            flex-direction: column;
+            gap: 4px;
+            padding: 15px;
+        }
+        .slider-slide i { font-size: 2rem; margin-bottom: 2px; }
+        .slider-slide small { font-size: 0.7rem; opacity: 0.8; font-weight: 400; }
+        .slide-1 { background: linear-gradient(135deg, #1a2a4a, #2d4a7a); }
+        .slide-2 { background: linear-gradient(135deg, #1a3a2a, #2d7a4a); }
+        .slide-3 { background: linear-gradient(135deg, #3a1a2a, #7a2d4a); }
+        .slide-4 { background: linear-gradient(135deg, #2a1a3a, #4a2d7a); }
+        .slide-5 { background: linear-gradient(135deg, #1a2a2a, #2d4a4a); }
+
+        .slider-dots {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+            z-index: 10;
+        }
+        .slider-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.3);
+            cursor: pointer;
+            transition: 0.3s;
+            border: 2px solid rgba(255,255,255,0.1);
+        }
+        .slider-dot.active {
+            background: #f5c542;
+            border-color: #f5c542;
+            transform: scale(1.2);
+        }
+
+        .tab-nav {
+            display: flex;
+            gap: 0.3rem;
+            margin-bottom: 1rem;
+            border-bottom: 2px solid #1f3148;
+            padding-bottom: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .tab-btn {
+            background: transparent;
+            border: none;
+            padding: 0.4rem 1.2rem;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 0.8rem;
+            color: #8aa3c9;
+            cursor: pointer;
+            transition: 0.2s;
+            border: 1px solid transparent;
+        }
+        .tab-btn i { margin-right: 5px; }
+        .tab-btn.active {
+            background: #1a3050;
+            color: #e8f0ff;
+            border-color: #4a8ad4;
+        }
+        .tab-btn:hover { background: #1a2840; color: #b6cef0; }
+        .tab-btn .badge {
+            background: #ff6b6b;
+            color: white;
+            font-size: 0.55rem;
+            padding: 0.05rem 0.5rem;
+            border-radius: 30px;
+            margin-left: 4px;
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeTab 0.3s ease;
+        }
+        .tab-content.active { display: block; }
+        @keyframes fadeTab {
+            0% { opacity: 0.4; transform: translateY(8px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        .game-menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.2rem;
+        }
+        .game-card {
+            background: #0f1a2b;
+            padding: 1.2rem;
+            border-radius: 1.5rem;
+            border: 1px solid #2a405a;
+            cursor: pointer;
+            transition: 0.3s;
+            text-align: center;
+            color: #e8f0ff;
+            position: relative;
+            overflow: hidden;
+        }
+        .game-card:hover {
+            transform: translateY(-4px);
+            border-color: #5a83b5;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+        }
+        .game-card i { font-size: 2.2rem; margin-bottom: 0.4rem; }
+        .game-card .title { font-weight: 700; font-size: 1rem; }
+        .game-card .desc { color: #8aa3c9; font-size: 0.75rem; margin-top: 3px; }
+        .game-card .badge {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: #f5c542;
+            color: #0a111f;
+            font-size: 0.55rem;
+            font-weight: 700;
+            padding: 0.15rem 0.6rem;
+            border-radius: 30px;
+            text-transform: uppercase;
+        }
+        .game-card .badge.online { background: #51cf66; color: white; }
+        .game-card .badge.offline { background: #5a7394; color: white; }
+        .game-card.online i { color: #6b9fff; }
+        .game-card.offline i { color: #51cf66; }
+
+        .online-panel {
+            background: #0f1a2b;
+            border-radius: 1.5rem;
+            padding: 1rem 1.2rem;
+            border: 1px solid #2a405a;
+            margin-top: 0.3rem;
+            display: none;
+        }
+        .online-panel.show { display: block; }
+
+        .online-panel h4 {
+            color: #b6cef0;
+            font-size: 0.85rem;
+            margin-bottom: 0.8rem;
+        }
+
+        .online-mode-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 0.8rem;
+            margin-bottom: 1rem;
+        }
+        .online-mode-card {
+            background: #0b1422;
+            padding: 1rem;
+            border-radius: 1rem;
+            border: 1px solid #2a405a;
+            cursor: pointer;
+            transition: 0.3s;
+            text-align: center;
+            color: #e8f0ff;
+        }
+        .online-mode-card:hover { border-color: #5a83b5; transform: translateY(-2px); }
+        .online-mode-card.active { border-color: #7aa9ff; background: #1a3050; }
+        .online-mode-card i { font-size: 1.8rem; margin-bottom: 0.3rem; color: #6b9fff; }
+        .online-mode-card .title { font-weight: 600; font-size: 0.9rem; }
+        .online-mode-card .desc { color: #8aa3c9; font-size: 0.7rem; margin-top: 2px; }
+
+        .online-settings {
+            background: #0b1422;
+            border-radius: 1rem;
+            padding: 0.8rem 1rem;
+            border: 1px solid #2a405a;
+            margin-top: 0.5rem;
+        }
+        .online-settings .settings-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            align-items: center;
+        }
+        .online-settings .setting-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #0a111f;
+            padding: 0.2rem 0.8rem 0.2rem 0.6rem;
+            border-radius: 50px;
+            border: 1px solid #2a405a;
+        }
+        .online-settings .setting-item label {
+            color: #b6cef0;
+            font-size: 0.75rem;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        .online-settings .setting-item select, .online-settings .setting-item input {
+            background: #0a111f;
+            border: none;
+            padding: 0.2rem 0.6rem;
+            border-radius: 30px;
+            color: white;
+            font-weight: 500;
+            border: 1px solid #2a405a;
+            outline: none;
+            font-size: 0.75rem;
+        }
+        .online-settings .setting-item input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: #4f8cd4;
+            cursor: pointer;
+        }
+        .online-settings .setting-item input[type="number"] { width: 55px; text-align: center; }
+        .btn-online-action {
+            background: #2f5b8a;
+            border: none;
+            color: white;
+            font-weight: 700;
+            padding: 0.3rem 1.5rem;
+            border-radius: 40px;
+            cursor: pointer;
+            border: 1px solid #5a83b5;
+            transition: 0.2s;
+            font-size: 0.85rem;
+        }
+        .btn-online-action:hover { background: #4273ae; transform: scale(1.02); }
+        .btn-online-action.green { background: #3d7a4a; border-color: #5da06b; }
+        .btn-online-action.green:hover { background: #4f9760; }
+        .btn-online-action.orange { background: #8a6a3a; border-color: #b08a4a; }
+        .btn-online-action.orange:hover { background: #a07a4a; }
+
+        .online-friends-list {
+            margin-top: 0.8rem;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .online-friends-list::-webkit-scrollbar { width: 4px; }
+        .online-friends-list::-webkit-scrollbar-track { background: #0a111f; border-radius: 10px; }
+        .online-friends-list::-webkit-scrollbar-thumb { background: #2a405a; border-radius: 10px; }
+
+        .online-friend-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.4rem 0.6rem;
+            border-bottom: 1px solid #1a2840;
+        }
+        .online-friend-item:last-child { border-bottom: none; }
+        .online-friend-item .info {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+        .online-friend-item .info .avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #1a2840;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.7rem;
+            color: #b6cef0;
+            border: 1px solid #2a405a;
+        }
+        .online-friend-item .info .name { color: #e8f0ff; font-size: 0.8rem; }
+        .online-friend-item .info .status { font-size: 0.55rem; color: #51cf66; }
+        .online-friend-item .btn-challenge {
+            background: #2f5b8a;
+            border: none;
+            color: white;
+            padding: 0.15rem 0.8rem;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 0.65rem;
+            font-weight: 600;
+            border: 1px solid #5a83b5;
+            transition: 0.2s;
+        }
+        .online-friend-item .btn-challenge:hover { background: #4273ae; }
+
+        .challenge-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .challenge-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #0f1a2b;
+            padding: 0.5rem 1rem;
+            border-radius: 1rem;
+            border: 1px solid #2a405a;
+            transition: 0.2s;
+        }
+        .challenge-item:hover { border-color: #4a6a8a; }
+        .challenge-item .info {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+        .challenge-item .info .avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: #1a2840;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1rem;
+            color: #b6cef0;
+            border: 2px solid #2a405a;
+        }
+        .challenge-item .info .details .name { color: #e8f0ff; font-weight: 600; font-size: 0.9rem; }
+        .challenge-item .info .details .challenge-time { color: #5a7394; font-size: 0.65rem; }
+        .challenge-item .actions { display: flex; gap: 0.5rem; }
+        .btn-sm {
+            padding: 0.2rem 0.8rem;
+            border-radius: 30px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.7rem;
+            font-weight: 600;
+            transition: 0.2s;
+        }
+        .btn-sm.accept { background: #51cf66; color: #0a111f; }
+        .btn-sm.accept:hover { background: #7ae0a0; }
+        .btn-sm.reject { background: #ff6b6b; color: white; }
+        .btn-sm.reject:hover { background: #ff8a8a; }
+        .btn-sm.pending { background: #8a7a3a; color: white; cursor: default; }
+
+        .empty-state { text-align: center; color: #5a7394; padding: 1.5rem; }
+        .empty-state i { font-size: 2.5rem; margin-bottom: 0.5rem; opacity: 0.5; }
+        .empty-state p { font-size: 0.85rem; }
+
+        .settings-panel {
+            background: #0f1a2b;
+            padding: 1rem 1.2rem;
+            border-radius: 1.5rem;
+            border: 1px solid #2a405a;
+            margin-top: 0.3rem;
+        }
+        .settings-panel h4 {
+            color: #b6cef0;
+            font-size: 0.85rem;
+            margin-bottom: 0.8rem;
+        }
+        .settings-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            align-items: center;
+        }
+        .setting-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #0b1422;
+            padding: 0.2rem 0.8rem 0.2rem 0.6rem;
+            border-radius: 50px;
+            border: 1px solid #2a405a;
+        }
+        .setting-item label {
+            color: #b6cef0;
+            font-size: 0.75rem;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        .setting-item select, .setting-item input {
+            background: #0a111f;
+            border: none;
+            padding: 0.2rem 0.6rem;
+            border-radius: 30px;
+            color: white;
+            font-weight: 500;
+            border: 1px solid #2a405a;
+            outline: none;
+            font-size: 0.75rem;
+        }
+        .setting-item select:focus, .setting-item input:focus {
+            border-color: #7aa9ff;
+            box-shadow: 0 0 0 3px #1f3d66;
+        }
+        .setting-item input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: #4f8cd4;
+            cursor: pointer;
+        }
+        .setting-item input[type="number"] { width: 55px; text-align: center; }
+        .btn-play {
+            background: #2f5b8a;
+            border: none;
+            color: white;
+            font-weight: 700;
+            padding: 0.4rem 1.8rem;
+            border-radius: 40px;
+            cursor: pointer;
+            border: 1px solid #5a83b5;
+            transition: 0.2s;
+            font-size: 0.85rem;
+        }
+        .btn-play:hover { background: #4273ae; transform: scale(1.02); }
+
+        .reward-info {
+            background: #0f1a2b;
+            border-radius: 1rem;
+            padding: 0.6rem 1rem;
+            border: 1px solid #2a405a;
+            margin-top: 0.5rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.8rem 1.5rem;
+            justify-content: center;
+            align-items: center;
+        }
+        .reward-info .label { color: #8aa3c9; font-size: 0.8rem; }
+        .reward-info .item { font-size: 0.8rem; font-weight: 600; }
+        .reward-info .item.green { color: #7ae0a0; }
+        .reward-info .item.gold { color: #f5c542; }
+        .reward-info .item.red { color: #ff6b6b; }
+        .reward-info .item .win { color: #7ae0a0; }
+        .reward-info .item .lose { color: #ff6b6b; }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 0.8rem 1.5rem;
+            border-radius: 1rem;
+            color: white;
+            font-weight: 600;
+            z-index: 9999;
+            animation: slideUp 0.3s ease;
+            max-width: 350px;
+        }
+        .toast.success { background: #3d7a4a; }
+        .toast.error { background: #7a4a4a; }
+        .toast.info { background: #2f5b8a; }
+
+        .friend-search {
+            display: flex;
+            gap: 0.8rem;
+            flex-wrap: wrap;
+            align-items: center;
+            background: #0f1a2b;
+            padding: 0.6rem 1rem;
+            border-radius: 1rem;
+            border: 1px solid #2a405a;
+        }
+        .friend-search input {
+            flex: 1;
+            min-width: 150px;
+            background: #0a111f;
+            border: 1px solid #2a405a;
+            border-radius: 30px;
+            padding: 0.4rem 1rem;
+            color: white;
+            outline: none;
+            font-size: 0.85rem;
+        }
+        .friend-search input:focus { border-color: #7aa9ff; }
+        .friend-search .btn-search {
+            background: #2f5b8a;
+            border: none;
+            color: white;
+            padding: 0.4rem 1.2rem;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: 600;
+            border: 1px solid #5a83b5;
+            transition: 0.2s;
+            font-size: 0.8rem;
+        }
+        .friend-search .btn-search:hover { background: #4273ae; }
+
+        .search-result {
+            background: #0f1a2b;
+            padding: 0.8rem 1rem;
+            border-radius: 1rem;
+            border: 1px solid #2a405a;
+            display: none;
+        }
+        .search-result.show { display: block; }
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .result-item .info {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+        .result-item .info .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #1a2840;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: #b6cef0;
+            border: 2px solid #2a405a;
+        }
+        .result-item .info .details .name { color: #e8f0ff; font-weight: 600; font-size: 0.95rem; }
+        .result-item .info .details .friend-id { color: #5a7394; font-size: 0.7rem; }
+        .result-item .info .details .friend-status { font-size: 0.65rem; font-weight: 600; }
+        .result-item .info .details .friend-status.online { color: #51cf66; }
+        .result-item .info .details .friend-status.offline { color: #5a7394; }
+        .result-item .info .details .friend-elo { color: #f5c542; font-size: 0.75rem; font-weight: 600; }
+        .btn-add {
+            background: #2f5b8a;
+            border: none;
+            color: white;
+            padding: 0.3rem 1.2rem;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: 600;
+            border: 1px solid #5a83b5;
+            transition: 0.2s;
+            font-size: 0.75rem;
+        }
+        .btn-add:hover { background: #4273ae; }
+        .btn-add.added {
+            background: #5a7394;
+            border-color: #5a7394;
+            cursor: default;
+        }
+        .btn-add.added:hover { background: #5a7394; }
+
+        .friend-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #0f1a2b;
+            padding: 0.5rem 1rem;
+            border-radius: 1rem;
+            border: 1px solid #2a405a;
+            transition: 0.2s;
+        }
+        .friend-item:hover { border-color: #4a6a8a; }
+        .friend-item .info {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+        .friend-item .info .avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: #1a2840;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1rem;
+            color: #b6cef0;
+            border: 2px solid #2a405a;
+        }
+        .friend-item .info .details .name { color: #e8f0ff; font-weight: 600; font-size: 0.9rem; }
+        .friend-item .info .details .friend-id { color: #5a7394; font-size: 0.65rem; }
+        .friend-item .info .details .friend-status { font-size: 0.6rem; font-weight: 600; }
+        .friend-item .info .details .friend-status.online { color: #51cf66; }
+        .friend-item .info .details .friend-status.offline { color: #5a7394; }
+        .friend-item .actions { display: flex; gap: 0.5rem; }
+        .btn-sm.remove { background: #5a7394; color: white; }
+        .btn-sm.remove:hover { background: #6a8aaa; }
+
+        .friend-requests-list {
+            margin-top: 0.5rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 0.8rem;
+            margin-bottom: 1.2rem;
+        }
+        .stat-card {
+            background: #0f1a2b;
+            padding: 0.7rem 0.8rem;
+            border-radius: 1.2rem;
+            border: 1px solid #2a405a;
+            text-align: center;
+        }
+        .stat-card .label { color: #8aa3c9; font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.5px; }
+        .stat-card .value { color: #e8f0ff; font-size: 1.3rem; font-weight: 700; margin-top: 2px; }
+        .stat-card .value.gold { color: #f5c542; }
+        .stat-card .value.green { color: #7ae0a0; }
+        .stat-card .value.blue { color: #6b9fff; }
+        .stat-card .value.purple { color: #c97ae0; }
+
+        .stats-advanced {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+            gap: 0.8rem;
+            margin-bottom: 1.2rem;
+        }
+        .stat-advanced {
+            background: #0f1a2b;
+            padding: 0.8rem 1rem;
+            border-radius: 1.2rem;
+            border: 1px solid #2a405a;
+            text-align: center;
+        }
+        .stat-advanced .label {
+            color: #8aa3c9;
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+        .stat-advanced .value { font-size: 1.5rem; font-weight: 700; margin-top: 2px; }
+        .stat-advanced .value.gold { color: #f5c542; }
+        .stat-advanced .value.green { color: #7ae0a0; }
+        .stat-advanced .value.blue { color: #6b9fff; }
+        .stat-advanced .value.purple { color: #c97ae0; }
+        .stat-advanced .sub { font-size: 0.7rem; color: #5a7394; margin-top: 2px; }
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #0a111f;
+            border-radius: 10px;
+            margin-top: 4px;
+            overflow: hidden;
+        }
+        .progress-bar .fill {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.8s ease;
+            background: linear-gradient(90deg, #7ae0a0, #f5c542);
+        }
+
+        .leaderboard-section {
+            background: #0f1a2b;
+            border-radius: 1.5rem;
+            padding: 1rem 1.2rem;
+            border: 1px solid #2a405a;
+        }
+        .leaderboard-section h3 { color: #b6cef0; font-size: 0.85rem; margin-bottom: 0.6rem; }
+        .leaderboard-section h3 i { color: #f5c542; }
+        .lb-item {
+            display: flex;
+            align-items: center;
+            padding: 0.4rem 0.3rem;
+            border-bottom: 1px solid #1a2840;
+            color: #c6d8f0;
+            font-size: 0.8rem;
+            gap: 0.3rem;
+        }
+        .lb-item:last-child { border-bottom: none; }
+        .lb-item .lb-rank { color: #f5c542; font-weight: 600; min-width: 32px; font-size: 0.85rem; }
+        .lb-item .lb-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #1a2840;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.75rem;
+            color: #b6cef0;
+            border: 1px solid #2a405a;
+            flex-shrink: 0;
+        }
+        .lb-item .lb-name { flex: 1; padding: 0 0.4rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .lb-item .lb-name .highlight { color: #f5c542; font-weight: 700; }
+        .lb-item .lb-elo { color: #7ae0a0; font-weight: 600; min-width: 40px; text-align: right; }
+        .lb-item .lb-rank-badge {
+            font-size: 0.55rem;
+            padding: 0.05rem 0.4rem;
+            border-radius: 30px;
+            font-weight: 600;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .lb-item .lb-rank-badge.grandmaster { background: #f5c542; color: #0a111f; }
+        .lb-item .lb-rank-badge.master { background: #6b9fff; color: white; }
+        .lb-item .lb-rank-badge.ahli { background: #7ae0a0; color: #0a111f; }
+        .lb-item .lb-rank-badge.menengah { background: #c97ae0; color: white; }
+        .lb-item .lb-rank-badge.pemula { background: #5a7394; color: white; }
+
+        .menu-title { color: #b6cef0; font-size: 1rem; font-weight: 600; margin-bottom: 0.8rem; }
+        .menu-title i { color: #f5c542; margin-right: 8px; }
+
+        .footer { margin-top: 1rem; color: #5a7394; font-size: 0.7rem; text-align: center; }
+        .loading-text { color: #b6cef0; text-align: center; padding: 0.5rem; font-size: 0.85rem; }
+
+        @media (max-width: 600px) {
+            .dashboard-container { padding: 1rem; }
+            .header-left h1 { font-size: 1.1rem; }
+            .user-badge { gap: 0.4rem; padding: 0.2rem 0.8rem; }
+            .slider-container { height: 100px; }
+            .slider-slide { font-size: 0.9rem; }
+            .slider-slide i { font-size: 1.4rem; }
+            .stats-advanced { grid-template-columns: 1fr 1fr; }
+            .game-menu-grid { grid-template-columns: 1fr; }
+            .settings-row { flex-direction: column; align-items: stretch; }
+            .tab-btn { padding: 0.3rem 0.8rem; font-size: 0.7rem; }
+            .online-row { flex-direction: column; align-items: stretch; }
+            .online-row .input-group { width: 100%; }
+            .friend-search { flex-direction: column; }
+            .friend-item { flex-wrap: wrap; gap: 0.5rem; }
+            .friend-item .actions { width: 100%; justify-content: flex-end; }
+            .result-item { flex-direction: column; align-items: stretch; text-align: center; }
+            .result-item .info { justify-content: center; }
+            .lb-item { font-size: 0.7rem; flex-wrap: wrap; }
+            .lb-item .lb-rank-badge { font-size: 0.5rem; }
+            .online-mode-grid { grid-template-columns: 1fr 1fr; }
+            .challenge-item { flex-wrap: wrap; gap: 0.5rem; }
+            .challenge-item .actions { width: 100%; justify-content: flex-end; }
+        }
+    </style>
+</head>
+<body>
+<div class="dashboard-container">
+    <!-- HEADER -->
+    <div class="header">
+        <div class="header-left">
+            <h1><i class="fas fa-chess-queen"></i> Dashboard</h1>
+            <div class="user-badge">
+                <span class="user-id" id="userIdDisplay" title="Klik untuk salin ID"><i class="fas fa-copy"></i> <span id="userIdText">00000000</span></span>
+                <span class="name" id="userName">Pemain</span>
+                <span class="elo" id="userElo">100</span>
+                <span class="rank" id="userRank">Pemula</span>
+                <span class="status online" id="userStatus">Online</span>
+            </div>
+        </div>
+        <button class="btn-logout" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Keluar</button>
+    </div>
+
+    <!-- SLIDER -->
+    <div class="slider-container">
+        <div class="slider-track" id="sliderTrack">
+            <div class="slider-slide slide-1"><i class="fas fa-chess-queen"></i><span>♚ Catur Elite</span><small>Tingkatkan ELO & Jadi Grandmaster!</small></div>
+            <div class="slider-slide slide-2"><i class="fas fa-robot"></i><span>🤖 Lawan Bot</span><small>Mudah +10/-5 · Sedang +25/-10 · Sulit +45/-20</small></div>
+            <div class="slider-slide slide-3"><i class="fas fa-globe"></i><span>🌐 Bermain Online</span><small>Tantang teman atau cari player</small></div>
+            <div class="slider-slide slide-4"><i class="fas fa-chart-line"></i><span>📊 Statistik Lengkap</span><small>Akurasi, Kecepatan, Win Rate</small></div>
+            <div class="slider-slide slide-5"><i class="fas fa-clock"></i><span>⏱️ Timer Mode</span><small>Main dengan atau tanpa batas waktu</small></div>
+        </div>
+        <div class="slider-dots" id="sliderDots">
+            <span class="slider-dot active" data-index="0"></span>
+            <span class="slider-dot" data-index="1"></span>
+            <span class="slider-dot" data-index="2"></span>
+            <span class="slider-dot" data-index="3"></span>
+            <span class="slider-dot" data-index="4"></span>
+        </div>
+    </div>
+
+    <!-- TAB NAVIGATION -->
+    <div class="tab-nav">
+        <button class="tab-btn active" data-tab="play"><i class="fas fa-gamepad"></i> Bermain</button>
+        <button class="tab-btn" data-tab="challenges"><i class="fas fa-bolt"></i> Tantangan <span class="badge" id="challengeBadge" style="display:none;">0</span></button>
+        <button class="tab-btn" data-tab="friends"><i class="fas fa-user-friends"></i> Teman <span class="badge" id="friendRequestBadge" style="display:none;">0</span></button>
+        <button class="tab-btn" data-tab="stats"><i class="fas fa-chart-bar"></i> Statistik</button>
+        <button class="tab-btn" data-tab="leaderboard"><i class="fas fa-crown"></i> Leaderboard</button>
+    </div>
+
+    <!-- TAB 1: BERMAIN -->
+    <div class="tab-content active" id="tabPlay">
+        <div class="menu-title"><i class="fas fa-gamepad"></i> Pilih Mode Bermain</div>
+        <div class="game-menu-grid">
+            <div class="game-card online" id="onlineCard">
+                <div class="badge online">Online</div>
+                <i class="fas fa-globe"></i>
+                <div class="title">Bermain Online</div>
+                <div class="desc">Tantang teman atau cari player</div>
+            </div>
+            <div class="game-card offline" id="offlineCard">
+                <div class="badge offline">Offline</div>
+                <i class="fas fa-robot"></i>
+                <div class="title">Bermain Offline</div>
+                <div class="desc">Lawan bot dengan tingkat kesulitan pilihan</div>
+            </div>
+        </div>
+
+        <!-- ONLINE PANEL -->
+        <div class="online-panel" id="onlinePanel">
+            <h4><i class="fas fa-globe"></i> Bermain Online</h4>
+            
+            <!-- Mode Selection -->
+            <div class="online-mode-grid">
+                <div class="online-mode-card active" data-mode="challenge" id="modeChallenge">
+                    <i class="fas fa-swords"></i>
+                    <div class="title">Tantang Teman</div>
+                    <div class="desc">Tantang teman yang sedang online</div>
+                </div>
+                <div class="online-mode-card" data-mode="matchmaking" id="modeMatchmaking">
+                    <i class="fas fa-random"></i>
+                    <div class="title">Cari Player</div>
+                    <div class="desc">Cari player lain secara random</div>
+                </div>
+            </div>
+
+            <!-- Settings -->
+            <div class="online-settings" id="onlineSettings">
+                <div class="settings-row">
+                    <div class="setting-item">
+                        <label><i class="fas fa-clock"></i> Timer</label>
+                        <input type="checkbox" id="onlineTimerToggle" checked />
+                        <label style="font-size:0.7rem;">Aktif</label>
+                    </div>
+                    <div class="setting-item">
+                        <label>Durasi (menit)</label>
+                        <input type="number" id="onlineTimerMinutes" value="5" min="1" max="30" step="1" />
+                    </div>
+                    <button class="btn-online-action green" id="startOnlineBtn"><i class="fas fa-play"></i> Mulai</button>
+                    <button class="btn-online-action orange" id="cancelSearchBtn" style="display:none;"><i class="fas fa-stop"></i> Batal Cari</button>
+                </div>
+                <div id="searchStatus" style="color:#f5c542; font-size:0.8rem; margin-top:0.3rem; min-height:20px; display:none;">
+                    <i class="fas fa-spinner fa-spin"></i> Mencari pemain...
+                </div>
+            </div>
+
+            <!-- Teman Online List -->
+            <div style="margin-top:0.8rem;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.3rem;">
+                    <span style="color:#8aa3c9; font-size:0.8rem;"><i class="fas fa-circle" style="color:#51cf66;"></i> Teman Online</span>
+                    <button class="btn-online-action" id="refreshOnlineBtn" style="padding:0.15rem 0.8rem; font-size:0.65rem;"><i class="fas fa-sync-alt"></i> Refresh</button>
+                </div>
+                <div class="online-friends-list" id="onlineFriendsList">
+                    <div class="empty-state"><p>Memuat teman online...</p></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- OFFLINE SETTINGS -->
+        <div class="settings-panel" id="settingsPanel">
+            <h4><i class="fas fa-sliders-h"></i> Pengaturan Offline</h4>
+            <div class="settings-row">
+                <div class="setting-item">
+                    <label><i class="fas fa-robot"></i> Kesulitan Bot</label>
+                    <select id="difficultySelect">
+                        <option value="easy">Mudah (+10 / -5)</option>
+                        <option value="medium" selected>Sedang (+25 / -10)</option>
+                        <option value="hard">Sulit (+45 / -20)</option>
+                    </select>
+                </div>
+                <div class="setting-item">
+                    <label><i class="fas fa-chess-king"></i> Main Sebagai</label>
+                    <select id="playerColorSelect">
+                        <option value="white">Putih (Bawah)</option>
+                        <option value="black">Hitam (Bawah)</option>
+                    </select>
+                </div>
+                <div class="setting-item">
+                    <label><i class="fas fa-clock"></i> Timer</label>
+                    <input type="checkbox" id="timerToggle" checked />
+                    <label style="font-size:0.7rem;">Aktif</label>
+                </div>
+                <div class="setting-item">
+                    <label>Durasi (menit)</label>
+                    <input type="number" id="timerMinutes" value="5" min="1" max="30" step="1" />
+                </div>
+                <button class="btn-play" id="playOfflineBtn"><i class="fas fa-play"></i> Mulai Offline</button>
+            </div>
+        </div>
+        
+        <div class="reward-info">
+            <span class="label"><i class="fas fa-info-circle"></i> ELO System:</span>
+            <span class="item green">🟢 Mudah: <span class="win">+10</span> / <span class="lose">-5</span></span>
+            <span class="item gold">🟡 Sedang: <span class="win">+25</span> / <span class="lose">-10</span></span>
+            <span class="item red">🔴 Sulit: <span class="win">+45</span> / <span class="lose">-20</span></span>
+        </div>
+    </div>
+
+    <!-- TAB 2: TANTANGAN -->
+    <div class="tab-content" id="tabChallenges">
+        <div class="menu-title"><i class="fas fa-bolt"></i> Tantangan Masuk</div>
+        <div id="challengeList">
+            <div class="empty-state"><p>Tidak ada tantangan</p></div>
+        </div>
+    </div>
+
+    <!-- TAB 3: TEMAN -->
+    <div class="tab-content" id="tabFriends">
+        <div class="friends-container">
+            <div class="friend-search">
+                <input type="text" id="searchFriendInput" placeholder="Cari teman dengan ID (8 digit)" maxlength="8" />
+                <button class="btn-search" id="searchFriendBtn"><i class="fas fa-search"></i> Cari</button>
+            </div>
+
+            <div class="search-result" id="searchResult">
+                <div class="result-item" id="resultContent"></div>
+            </div>
+
+            <!-- Friend Requests -->
+            <div class="friend-requests-list">
+                <div class="menu-title" style="font-size:0.9rem; margin-bottom:0.5rem;"><i class="fas fa-bell"></i> Permintaan Teman</div>
+                <div id="friendRequestsList"><div class="empty-state"><p>Tidak ada permintaan teman</p></div></div>
+            </div>
+
+            <!-- Friends List -->
+            <div>
+                <div class="menu-title" style="font-size:0.9rem; margin-bottom:0.5rem;"><i class="fas fa-users"></i> Daftar Teman</div>
+                <div id="friendsList"><div class="empty-state"><i class="fas fa-user-friends"></i><p>Belum ada teman. Cari teman dengan ID di atas!</p></div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 4: STATISTIK -->
+    <div class="tab-content" id="tabStats">
+        <div class="stats-grid">
+            <div class="stat-card"><div class="label"><i class="fas fa-trophy"></i> Total Main</div><div class="value" id="totalGames">0</div></div>
+            <div class="stat-card"><div class="label"><i class="fas fa-check-circle"></i> Menang</div><div class="value green" id="totalWins">0</div></div>
+            <div class="stat-card"><div class="label"><i class="fas fa-star"></i> ELO</div><div class="value gold" id="eloStat">100</div></div>
+            <div class="stat-card"><div class="label"><i class="fas fa-medal"></i> Peringkat</div><div class="value gold" id="rankStat">Pemula</div></div>
+        </div>
+
+        <div class="stats-advanced">
+            <div class="stat-advanced"><div class="label"><i class="fas fa-bullseye"></i> Akurasi</div><div class="value gold" id="accuracyStat">0%</div><div class="sub">Rata-rata akurasi gerakan</div></div>
+            <div class="stat-advanced"><div class="label"><i class="fas fa-tachometer-alt"></i> Kecepatan</div><div class="value blue" id="speedStat">0s</div><div class="sub">Rata-rata waktu per gerakan</div></div>
+            <div class="stat-advanced"><div class="label"><i class="fas fa-percent"></i> Win Rate</div><div class="value green" id="winRateStat">0%</div><div class="sub">Persentase kemenangan</div><div class="progress-bar"><div class="fill" id="winRateBar" style="width:0%"></div></div></div>
+            <div class="stat-advanced"><div class="label"><i class="fas fa-fire"></i> Streak</div><div class="value purple" id="streakStat">0</div><div class="sub">Kemenangan beruntun</div></div>
+        </div>
+    </div>
+
+    <!-- TAB 5: LEADERBOARD -->
+    <div class="tab-content" id="tabLeaderboard">
+        <div class="leaderboard-section">
+            <h3><i class="fas fa-crown"></i> Peringkat Pemain</h3>
+            <div id="leaderboardList"><div class="loading-text"><i class="fas fa-spinner fa-spin"></i> Memuat...</div></div>
+        </div>
+    </div>
+
+    <div class="footer">Data tersimpan di JSONBin.io · ID Anda bisa disalin dengan klik</div>
+</div>
+
+<!-- TOAST -->
+<div id="toast" class="toast" style="display:none;"></div>
+
+<script>
+    // ===== KONFIGURASI =====
+    const CONFIG = {
+        BIN_ID: '6a3cd052da38895dfefbb5d5',
+        API_KEY: '$2a$10$cd1IrJqQ3YgBdhLSJO0IHuCNdln2PYc0qoLrnVN9waRlmHU3t7MKK',
+        BASE_URL: 'https://api.jsonbin.io/v3/b'
+    };
+
+    // ===== FUNGSI JSONBIN =====
+    async function getData() {
+        try {
+            const response = await fetch(`${CONFIG.BASE_URL}/${CONFIG.BIN_ID}`, {
+                headers: { 'X-Master-Key': CONFIG.API_KEY }
+            });
+            if (!response.ok) {
+                console.error('HTTP Error:', response.status);
+                throw new Error('Gagal mengambil data');
+            }
+            const data = await response.json();
+            return data.record || { users: [], rooms: [], matchmaking: [] };
+        } catch (error) {
+            console.error('Error getData:', error);
+            return { users: [], rooms: [], matchmaking: [] };
+        }
+    }
+
+    async function updateData(data) {
+        try {
+            console.log('📤 Saving data...');
+            const response = await fetch(`${CONFIG.BASE_URL}/${CONFIG.BIN_ID}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Master-Key': CONFIG.API_KEY
+                },
+                body: JSON.stringify(data)
+            });
+            if (!response.ok) {
+                console.error('HTTP Error:', response.status);
+                throw new Error('Gagal menyimpan data');
+            }
+            const result = await response.json();
+            console.log('✅ Data saved successfully!');
+            return result;
+        } catch (error) {
+            console.error('Error updateData:', error);
+            throw error;
+        }
+    }
+
+    // ===== TOAST =====
+    function showToast(message, type = 'info') {
+        const toast = document.getElementById('toast');
+        toast.textContent = message;
+        toast.className = `toast ${type}`;
+        toast.style.display = 'block';
+        setTimeout(() => { toast.style.display = 'none'; }, 4000);
+    }
+
+    // ===== SESSION =====
+    function getUserSession() {
+        const data = localStorage.getItem('chess_user');
+        console.log('🔍 Session data:', data);
+        if (!data) {
+            console.log('❌ No session found');
+            return null;
+        }
+        try {
+            const parsed = JSON.parse(data);
+            console.log('✅ Parsed session:', parsed);
+            if (parsed && parsed.username && parsed.userId) {
+                return parsed;
+            } else {
+                console.log('❌ Invalid session, removing...');
+                localStorage.removeItem('chess_user');
+                return null;
+            }
+        } catch (e) {
+            console.log('❌ Error parsing session:', e);
+            localStorage.removeItem('chess_user');
+            return null;
+        }
+    }
+
+    function checkSession() {
+        const user = getUserSession();
+        if (!user) {
+            console.log('🔴 Redirect ke login');
+            window.location.href = 'index.html';
+            return false;
+        }
+        console.log('✅ Session valid:', user.username);
+        return true;
+    }
+
+    // ===== SLIDER =====
+    let currentSlide = 0;
+    const totalSlides = 5;
+    const sliderTrack = document.getElementById('sliderTrack');
+    const dots = document.querySelectorAll('.slider-dot');
+
+    function goToSlide(index) {
+        currentSlide = index;
+        sliderTrack.style.transform = `translateX(-${index * 20}%)`;
+        dots.forEach((dot, i) => { dot.classList.toggle('active', i === index); });
+    }
+
+    dots.forEach(dot => {
+        dot.addEventListener('click', () => { goToSlide(parseInt(dot.dataset.index)); });
+    });
+
+    let slideInterval = setInterval(() => { goToSlide((currentSlide + 1) % totalSlides); }, 5000);
+    const sliderContainer = document.querySelector('.slider-container');
+    sliderContainer.addEventListener('mouseenter', () => clearInterval(slideInterval));
+    sliderContainer.addEventListener('mouseleave', () => {
+        slideInterval = setInterval(() => { goToSlide((currentSlide + 1) % totalSlides); }, 5000);
+    });
+
+    // ===== TAB NAVIGATION =====
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const tabContents = {
+        play: document.getElementById('tabPlay'),
+        challenges: document.getElementById('tabChallenges'),
+        friends: document.getElementById('tabFriends'),
+        stats: document.getElementById('tabStats'),
+        leaderboard: document.getElementById('tabLeaderboard')
+    };
+
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            tabBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            const tab = btn.dataset.tab;
+            Object.keys(tabContents).forEach(key => {
+                tabContents[key].classList.toggle('active', key === tab);
+            });
+            if (tab === 'friends') loadFriendsData();
+            if (tab === 'leaderboard') loadLeaderboard();
+            if (tab === 'challenges') loadChallenges();
+        });
+    });
+
+    // ===== COPY ID =====
+    document.getElementById('userIdDisplay').addEventListener('click', async () => {
+        const userId = document.getElementById('userIdText').textContent;
+        try {
+            await navigator.clipboard.writeText(userId);
+            showToast('✅ ID berhasil disalin!', 'success');
+        } catch (err) {
+            const input = document.createElement('input');
+            input.value = userId;
+            document.body.appendChild(input);
+            input.select();
+            document.execCommand('copy');
+            document.body.removeChild(input);
+            showToast('✅ ID berhasil disalin!', 'success');
+        }
+    });
+
+    // ===== TOGGLE ONLINE PANEL =====
+    document.getElementById('onlineCard').addEventListener('click', () => {
+        const panel = document.getElementById('onlinePanel');
+        panel.classList.toggle('show');
+        if (panel.classList.contains('show')) {
+            loadOnlineFriends();
+        }
+    });
+
+    document.getElementById('offlineCard').addEventListener('click', () => {
+        document.getElementById('settingsPanel').scrollIntoView({ behavior: 'smooth' });
+    });
+
+    // ===== ONLINE MODE SELECTION =====
+    let selectedMode = 'challenge';
+    let isSearching = false;
+    let searchInterval = null;
+    let refreshInterval = null;
+
+    document.querySelectorAll('.online-mode-card').forEach(card => {
+        card.addEventListener('click', () => {
+            document.querySelectorAll('.online-mode-card').forEach(c => c.classList.remove('active'));
+            card.classList.add('active');
+            selectedMode = card.dataset.mode;
+            
+            const btn = document.getElementById('startOnlineBtn');
+            if (selectedMode === 'challenge') {
+                btn.innerHTML = '<i class="fas fa-swords"></i> Tantang Teman';
+                document.getElementById('onlineFriendsList').style.display = 'block';
+            } else {
+                btn.innerHTML = '<i class="fas fa-random"></i> Cari Player';
+                document.getElementById('onlineFriendsList').style.display = 'none';
+            }
+        });
+    });
+
+    // ===== GENERATE ROOM ID =====
+    function generateRoomId() {
+        return String(Math.floor(10000000 + Math.random() * 90000000));
+    }
+
+    // ===== CREATE CHALLENGE ROOM =====
+    async function createChallengeRoom(targetUserId, targetUsername) {
+        if (!checkSession()) return;
+        const user = getUserSession();
+        if (!user) return;
+
+        try {
+            const data = await getData();
+            if (!data.rooms) data.rooms = [];
+
+            const roomId = generateRoomId();
+            const timerEnabled = document.getElementById('onlineTimerToggle').checked;
+            const timerMinutes = parseInt(document.getElementById('onlineTimerMinutes').value) || 5;
+            
+            const room = {
+                roomId: roomId,
+                hostId: user.userId,
+                hostName: user.username,
+                player2Id: targetUserId,
+                player2Name: targetUsername,
+                status: 'waiting',
+                board: null,
+                currentTurn: 'w',
+                castling: {
+                    w: { kingSide: true, queenSide: true },
+                    b: { kingSide: true, queenSide: true }
+                },
+                enPassantTarget: null,
+                lastMove: null,
+                createdAt: Date.now(),
+                challenge: true,
+                timerEnabled: timerEnabled,
+                timerMinutes: timerMinutes,
+                gameMoves: [],
+                moveTimestamps: []
+            };
+
+            data.rooms.push(room);
+            await updateData(data);
+
+            // Kirim tantangan ke target user
+            const targetUser = data.users.find(u => u.userId === targetUserId);
+            if (targetUser) {
+                if (!targetUser.challenges) targetUser.challenges = [];
+                // Hapus challenge lama dari user yang sama
+                targetUser.challenges = targetUser.challenges.filter(c => c.fromId !== user.userId);
+                targetUser.challenges.push({
+                    roomId: roomId,
+                    fromId: user.userId,
+                    fromName: user.username,
+                    timerEnabled: timerEnabled,
+                    timerMinutes: timerMinutes,
+                    createdAt: Date.now()
+                });
+                await updateData(data);
+                
+                // Jika target sedang online, refresh challenges mereka
+                if (targetUser.status === 'online') {
+                    showToast(`✅ Tantangan dikirim ke ${targetUsername}!`, 'success');
+                }
+            }
+
+            // Redirect host ke arena online
+            localStorage.setItem('online_room', JSON.stringify({
+                roomId: roomId,
+                isHost: true
+            }));
+            
+            // Tunggu sebentar lalu redirect
+            setTimeout(() => {
+                window.location.href = 'arena-online.html';
+            }, 500);
+
+        } catch (error) {
+            console.error('Error creating challenge:', error);
+            showToast('❌ Gagal mengirim tantangan', 'error');
+        }
+    }
+
+    // ===== CHALLENGE FRIEND =====
+    async function challengeFriend(friendId) {
+        if (!checkSession()) return;
+        const user = getUserSession();
+        if (!user) return;
+
+        try {
+            const data = await getData();
+            const friend = data.users.find(u => u.userId === friendId);
+            if (!friend) {
+                showToast('❌ Teman tidak ditemukan', 'error');
+                return;
+            }
+
+            if (friend.status !== 'online') {
+                showToast('❌ Teman sedang offline', 'error');
+                return;
+            }
+
+            // Cek apakah friend sedang dalam room
+            if (data.rooms) {
+                const inRoom = data.rooms.find(r => 
+                    (r.hostId === friendId || r.player2Id === friendId) && 
+                    (r.status === 'waiting' || r.status === 'playing')
+                );
+                if (inRoom) {
+                    showToast('❌ Teman sedang bermain', 'error');
+                    return;
+                }
+            }
+
+            await createChallengeRoom(friendId, friend.username);
+
+        } catch (error) {
+            console.error('Error challenging friend:', error);
+            showToast('❌ Gagal mengirim tantangan', 'error');
+        }
+    }
+
+    // ===== MATCHMAKING =====
+    document.getElementById('startOnlineBtn').addEventListener('click', async () => {
+        if (!checkSession()) return;
+        const user = getUserSession();
+        if (!user) return;
+
+        if (selectedMode === 'challenge') {
+            showToast('👆 Pilih teman dari daftar untuk ditantang', 'info');
+            return;
+        }
+
+        if (isSearching) {
+            cancelSearch();
+            return;
+        }
+
+        const timerEnabled = document.getElementById('onlineTimerToggle').checked;
+        const timerMinutes = parseInt(document.getElementById('onlineTimerMinutes').value) || 5;
+
+        try {
+            const data = await getData();
+            if (!data.matchmaking) data.matchmaking = [];
+
+            // Hapus user dari queue jika sudah ada
+            data.matchmaking = data.matchmaking.filter(m => m.userId !== user.userId);
+
+            // Cari player lain di queue
+            const opponent = data.matchmaking.find(m => m.userId !== user.userId);
+
+            if (opponent) {
+                // Dapatkan opponent, hapus dari queue
+                data.matchmaking = data.matchmaking.filter(m => m.userId !== opponent.userId);
+                await updateData(data);
+
+                // Buat room otomatis
+                const roomId = generateRoomId();
+                const userIsWhite = Math.random() < 0.5;
+                
+                const room = {
+                    roomId: roomId,
+                    hostId: userIsWhite ? user.userId : opponent.userId,
+                    hostName: userIsWhite ? user.username : opponent.username,
+                    player2Id: userIsWhite ? opponent.userId : user.userId,
+                    player2Name: userIsWhite ? opponent.username : user.username,
+                    status: 'playing',
+                    board: createEmptyBoard(),
+                    currentTurn: 'w',
+                    castling: {
+                        w: { kingSide: true, queenSide: true },
+                        b: { kingSide: true, queenSide: true }
+                    },
+                    enPassantTarget: null,
+                    lastMove: null,
+                    createdAt: Date.now(),
+                    challenge: false,
+                    matchmaking: true,
+                    timerEnabled: timerEnabled,
+                    timerMinutes: timerMinutes,
+                    gameMoves: [],
+                    moveTimestamps: []
+                };
+
+                if (!data.rooms) data.rooms = [];
+                data.rooms.push(room);
+                await updateData(data);
+
+                const isHost = user.userId === room.hostId;
+                localStorage.setItem('online_room', JSON.stringify({
+                    roomId: roomId,
+                    isHost: isHost
+                }));
+                
+                showToast(`🎮 Dapat lawan! ${isHost ? 'Anda Putih' : 'Anda Hitam'}`, 'success');
+                window.location.href = 'arena-online.html';
+
+            } else {
+                // Tidak ada player, masuk ke queue
+                data.matchmaking.push({
+                    userId: user.userId,
+                    username: user.username,
+                    timerEnabled: timerEnabled,
+                    timerMinutes: timerMinutes,
+                    joinedAt: Date.now()
+                });
+                await updateData(data);
+
+                isSearching = true;
+                document.getElementById('startOnlineBtn').innerHTML = '<i class="fas fa-stop"></i> Batal Cari';
+                document.getElementById('startOnlineBtn').className = 'btn-online-action orange';
+                document.getElementById('searchStatus').style.display = 'block';
+                document.getElementById('searchStatus').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mencari pemain...';
+                document.getElementById('cancelSearchBtn').style.display = 'inline-block';
+
+                startMatchmakingPolling();
+            }
+
+        } catch (error) {
+            console.error('Error matchmaking:', error);
+            showToast('❌ Gagal mencari player', 'error');
+        }
+    });
+
+    function createEmptyBoard() {
+        const b = Array(8).fill().map(() => Array(8).fill(null));
+        const back = ['r','n','b','q','k','b','n','r'];
+        for (let c=0; c<8; c++) {
+            b[0][c] = { type: back[c], color: 'b' };
+            b[1][c] = { type: 'p', color: 'b' };
+            b[6][c] = { type: 'p', color: 'w' };
+            b[7][c] = { type: back[c], color: 'w' };
+        }
+        return b;
+    }
+
+    let matchmakingPolling = null;
+
+    function startMatchmakingPolling() {
+        if (matchmakingPolling) clearInterval(matchmakingPolling);
+        matchmakingPolling = setInterval(async () => {
+            try {
+                const user = getUserSession();
+                if (!user) { cancelSearch(); return; }
+
+                const data = await getData();
+                const inQueue = data.matchmaking?.find(m => m.userId === user.userId);
+                
+                if (!inQueue) {
+                    cancelSearch();
+                    return;
+                }
+
+                const opponent = data.matchmaking.find(m => m.userId !== user.userId);
+                if (opponent) {
+                    // Ada match!
+                    data.matchmaking = data.matchmaking.filter(m => m.userId !== user.userId && m.userId !== opponent.userId);
+                    await updateData(data);
+
+                    const roomId = generateRoomId();
+                    const timerEnabled = document.getElementById('onlineTimerToggle').checked;
+                    const timerMinutes = parseInt(document.getElementById('onlineTimerMinutes').value) || 5;
+                    
+                    const userIsWhite = Math.random() < 0.5;
+                    
+                    const room = {
+                        roomId: roomId,
+                        hostId: userIsWhite ? user.userId : opponent.userId,
+                        hostName: userIsWhite ? user.username : opponent.username,
+                        player2Id: userIsWhite ? opponent.userId : user.userId,
+                        player2Name: userIsWhite ? opponent.username : user.username,
+                        status: 'playing',
+                        board: createEmptyBoard(),
+                        currentTurn: 'w',
+                        castling: {
+                            w: { kingSide: true, queenSide: true },
+                            b: { kingSide: true, queenSide: true }
+                        },
+                        enPassantTarget: null,
+                        lastMove: null,
+                        createdAt: Date.now(),
+                        challenge: false,
+                        matchmaking: true,
+                        timerEnabled: timerEnabled,
+                        timerMinutes: timerMinutes,
+                        gameMoves: [],
+                        moveTimestamps: []
+                    };
+
+                    if (!data.rooms) data.rooms = [];
+                    data.rooms.push(room);
+                    await updateData(data);
+
+                    const isHost = user.userId === room.hostId;
+                    localStorage.setItem('online_room', JSON.stringify({
+                        roomId: roomId,
+                        isHost: isHost
+                    }));
+                    
+                    cancelSearch();
+                    showToast(`🎮 Dapat lawan! ${isHost ? 'Anda Putih' : 'Anda Hitam'}`, 'success');
+                    window.location.href = 'arena-online.html';
+                }
+
+            } catch (error) {
+                console.error('Polling error:', error);
+            }
+        }, 3000);
+    }
+
+    function cancelSearch() {
+        isSearching = false;
+        if (matchmakingPolling) {
+            clearInterval(matchmakingPolling);
+            matchmakingPolling = null;
+        }
+        document.getElementById('startOnlineBtn').innerHTML = '<i class="fas fa-random"></i> Cari Player';
+        document.getElementById('startOnlineBtn').className = 'btn-online-action green';
+        document.getElementById('searchStatus').style.display = 'none';
+        document.getElementById('cancelSearchBtn').style.display = 'none';
+        
+        (async () => {
+            try {
+                const user = getUserSession();
+                if (!user) return;
+                const data = await getData();
+                if (data.matchmaking) {
+                    data.matchmaking = data.matchmaking.filter(m => m.userId !== user.userId);
+                    await updateData(data);
+                }
+            } catch (e) {}
+        })();
+    }
+
+    document.getElementById('cancelSearchBtn').addEventListener('click', cancelSearch);
+
+    // ===== LOAD ONLINE FRIENDS =====
+    async function loadOnlineFriends() {
+        if (!checkSession()) return;
+        const user = getUserSession();
+        if (!user) return;
+
+        try {
+            const data = await getData();
+            const currentUser = data.users.find(u => u.userId === user.userId);
+            if (!currentUser) return;
+
+            const friends = currentUser.friends || [];
+            const onlineFriends = data.users.filter(u => 
+                friends.includes(u.userId) && u.status === 'online' && u.userId !== user.userId
+            );
+
+            const container = document.getElementById('onlineFriendsList');
+            if (onlineFriends.length === 0) {
+                container.innerHTML = '<div class="empty-state"><p>Tidak ada teman online</p></div>';
+                container.style.display = 'block';
+                return;
+            }
+
+            container.innerHTML = '';
+            onlineFriends.forEach(friend => {
+                const div = document.createElement('div');
+                div.className = 'online-friend-item';
+                div.innerHTML = `
+                    <div class="info">
+                        <div class="avatar">${friend.username.charAt(0).toUpperCase()}</div>
+                        <div class="name">${friend.username}</div>
+                        <div class="status">🟢 Online</div>
+                    </div>
+                    <button class="btn-challenge" onclick="challengeFriend('${friend.userId}')">
+                        <i class="fas fa-swords"></i> Tantang
+                    </button>
+                `;
+                container.appendChild(div);
+            });
+            container.style.display = 'block';
+
+        } catch (error) {
+            console.error('Error loading online friends:', error);
+        }
+    }
+
+    document.getElementById('refreshOnlineBtn').addEventListener('click', loadOnlineFriends);
+
+    // ===== START AUTO REFRESH =====
+    function startAutoRefresh() {
+        if (refreshInterval) clearInterval(refreshInterval);
+        refreshInterval = setInterval(() => {
+            // Refresh challenges & friend requests
+            if (document.getElementById('tabChallenges').classList.contains('active')) {
+                loadChallenges();
+            }
+            if (document.getElementById('tabFriends').classList.contains('active')) {
+                loadFriendsData();
+            }
+        }, 5000);
+    }
+
+    // ===== LOAD CHALLENGES =====
+    async function loadChallenges() {
+        if (!checkSession()) return;
+        const user = getUserSession();
+        if (!user) return;
+
+        try {
+            const data = await getData();
+            const currentUser = data.users.find(u => u.userId === user.userId);
+            if (!currentUser) return;
+
+            // INISIALISASI CHALLENGES JIKA BELUM ADA
+            if (!currentUser.challenges) {
+                currentUser.challenges = [];
+                await updateData(data);
+            }
+
+            const challenges = currentUser.challenges || [];
+            
+            // Filter challenge yang sudah kadaluarsa
+            const validChallenges = [];
+            for (const challenge of challenges) {
+                const room = data.rooms?.find(r => r.roomId === challenge.roomId);
+                if (room && (room.status === 'waiting' || room.status === 'playing')) {
+                    validChallenges.push(challenge);
+                }
+            }
+            
+            // Update challenges jika ada yang invalid
+            if (validChallenges.length !== challenges.length) {
+                currentUser.challenges = validChallenges;
+                await updateData(data);
+            }
+            
+            // Update badge
+            const badge = document.getElementById('challengeBadge');
+            if (validChallenges.length > 0) {
+                badge.style.display = 'inline';
+                badge.textContent = validChallenges.length;
+            } else {
+                badge.style.display = 'none';
+            }
+
+            const container = document.getElementById('challengeList');
+            if (validChallenges.length === 0) {
+                container.innerHTML = '<div class="empty-state"><p>Tidak ada tantangan</p></div>';
+                return;
+            }
+
+            container.innerHTML = '';
+            for (const challenge of validChallenges) {
+                const sender = data.users.find(u => u.userId === challenge.fromId);
+                if (!sender) continue;
+
+                const room = data.rooms?.find(r => r.roomId === challenge.roomId);
+                const isRoomActive = room && (room.status === 'waiting' || room.status === 'playing');
+
+                const div = document.createElement('div');
+                div.className = 'challenge-item';
+                
+                let actionsHTML = '';
+                if (isRoomActive) {
+                    actionsHTML = `
+                        <button class="btn-sm accept" onclick="acceptChallenge('${challenge.roomId}', '${sender.userId}')"><i class="fas fa-check"></i> Terima</button>
+                        <button class="btn-sm reject" onclick="rejectChallenge('${challenge.roomId}')"><i class="fas fa-times"></i> Tolak</button>
+                    `;
+                } else {
+                    actionsHTML = `<button class="btn-sm pending" disabled><i class="fas fa-clock"></i> Kadaluarsa</button>`;
+                }
+
+                const timerText = challenge.timerEnabled ? `${challenge.timerMinutes} menit` : 'Tanpa timer';
+
+                div.innerHTML = `
+                    <div class="info">
+                        <div class="avatar">${sender.username.charAt(0).toUpperCase()}</div>
+                        <div class="details">
+                            <div class="name">${sender.username}</div>
+                            <div class="challenge-time">⏱️ ${timerText} · ${new Date(challenge.createdAt).toLocaleTimeString()}</div>
+                        </div>
+                    </div>
+                    <div class="actions">
+                        ${actionsHTML}
+                    </div>
+                `;
+                container.appendChild(div);
+            }
+
+        } catch (error) {
+            console.error('Error loading challenges:', error);
+        }
+    }
+
+    // ===== ACCEPT CHALLENGE =====
+    async function acceptChallenge(roomId, senderId) {
+        if (!checkSession()) return;
+        const user = getUserSession();
+        if (!user) return;
+
+        try {
+            const data = await getData();
+            const room = data.rooms?.find(r => r.roomId === roomId);
+            const currentUser = data.users.find(u => u.userId === user.userId);
+
+            if (!room || !currentUser) {
+                showToast('❌ Room tidak tersedia', 'error');
+                loadChallenges();
+                return;
+            }
+
+            if (room.status !== 'waiting') {
+                showToast('❌ Room sudah tidak tersedia', 'error');
+                if (currentUser.challenges) {
+                    currentUser.challenges = currentUser.challenges.filter(c => c.roomId !== roomId);
+                    await updateData(data);
+                }
+                loadChallenges();
+                return;
+            }
+
+            // Update room
+            room.player2Id = user.userId;
+            room.player2Name = user.username;
+            room.status = 'playing';
+            room.board = createEmptyBoard();
+
+            // Hapus challenge dari user
+            if (currentUser.challenges) {
+                currentUser.challenges = currentUser.challenges.filter(c => c.roomId !== roomId);
+            }
+
+            await updateData(data);
+
+            showToast(`✅ Bergabung ke room!`, 'success');
+
+            localStorage.setItem('online_room', JSON.stringify({
+                roomId: roomId,
+                isHost: false
+            }));
+            window.location.href = 'arena-online.html';
+
+        } catch (error) {
+            console.error('Error accepting challenge:', error);
+            showToast('❌ Gagal menerima tantangan', 'error');
+        }
+    }
+
+    // ===== REJECT CHALLENGE =====
+    async function rejectChallenge(roomId) {
+        if (!checkSession()) return;
+        const user = getUserSession();
+        if (!user) return;
+
+        try {
+            const data = await getData();
+            const currentUser = data.users.find(u => u.userId === user.userId);
+            if (currentUser && currentUser.challenges) {
+                currentUser.challenges = currentUser.challenges.filter(c => c.roomId !== roomId);
+                await updateData(data);
+            }
+            showToast('❌ Tantangan ditolak', 'info');
+            loadChallenges();
+
+        } catch (error) {
+            console.error('Error rejecting challenge:', error);
+        }
+    }
+
+    // ===== FRIENDS FUNCTIONS =====
+    async function loadFriendsData() {
+        if (!checkSession()) return;
+        const user = getUserSession();
+        if (!user) return;
+
+        try {
+            const data = await getData();
+            const currentUser = data.users.find(u => u.userId === user.userId);
+            if (!currentUser) return;
+
+            // Friend Requests
+            const requests = currentUser.friendRequests || [];
+            const badge = document.getElementById('friendRequestBadge');
+            if (requests.length > 0) {
+                badge.style.display = 'inline';
+                badge.textContent = requests.length;
+            } else {
+                badge.style.display = 'none';
+            }
+
+            renderFriendRequests(requests, data.users);
+            renderFriendsList(currentUser.friends || [], data.users);
+
+        } catch (error) {
+            console.error('Error loading friends:', error);
+        }
+    }
+
+    function renderFriendRequests(requests, allUsers) {
+        const container = document.getElementById('friendRequestsList');
+        if (requests.length === 0) {
+            container.innerHTML = '<div class="empty-state"><p>Tidak ada permintaan teman</p></div>';
+            return;
+        }
+
+        container.innerHTML = '';
+        requests.forEach(requestId => {
+            const sender = allUsers.find(u => u.userId === requestId);
+            if (!sender) return;
+
+            const div = document.createElement('div');
+            div.className = 'friend-item';
+            div.innerHTML = `
+                <div class="info">
+                    <div class="avatar">${sender.username.charAt(0).toUpperCase()}</div>
+                    <div class="details">
+                        <div class="name">${sender.username}</div>
+                        <div class="friend-id">ID: ${sender.userId}</div>
+                        <div class="friend-status ${sender.status === 'online' ? 'online' : 'offline'}">
+                            ${sender.status === 'online' ? '🟢 Online' : '⚪ Offline'}
+                        </div>
+                    </div>
+                </div>
+                <div class="actions">
+                    <button class="btn-sm accept" onclick="acceptFriend('${sender.userId}')"><i class="fas fa-check"></i> Terima</button>
+                    <button class="btn-sm reject" onclick="rejectFriend('${sender.userId}')"><i class="fas fa-times"></i> Tolak</button>
+                </div>
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    function renderFriendsList(friends, allUsers) {
+        const container = document.getElementById('friendsList');
+        if (friends.length === 0) {
+            container.innerHTML = '<div class="empty-state"><i class="fas fa-user-friends"></i><p>Belum ada teman. Cari teman dengan ID di atas!</p></div>';
+            return;
+        }
+
+        container.innerHTML = '';
+        friends.forEach(friendId => {
+            const friend = allUsers.find(u => u.userId === friendId);
+            if (!friend) return;
+
+            const div = document.createElement('div');
+            div.className = 'friend-item';
+            div.innerHTML = `
+                <div class="info">
+                    <div class="avatar">${friend.username.charAt(0).toUpperCase()}</div>
+                    <div class="details">
+                        <div class="name">${friend.username}</div>
+                        <div class="friend-id">ID: ${friend.userId}</div>
+                        <div class="friend-status ${friend.status === 'online' ? 'online' : 'offline'}">
+                            ${friend.status === 'online' ? '🟢 Online' : '⚪ Offline'}
+                        </div>
+                    </div>
+                </div>
+                <div class="actions">
+                    ${friend.status === 'online' ? `<button class="btn-sm accept" onclick="challengeFriend('${friend.userId}')" style="background:#2f5b8a;color:white;border:1px solid #5a83b5;"><i class="fas fa-swords"></i> Tantang</button>` : ''}
+                    <button class="btn-sm remove" onclick="removeFriend('${friend.userId}')"><i class="fas fa-user-minus"></i> Hapus</button>
+                </div>
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    // ===== FRIEND ACTIONS =====
+    async function acceptFriend(senderId) {
+        if (!checkSession()) return;
+        const user = getUserSession();
+        if (!user) return;
+
+        try {
+            const data = await getData();
+            const currentUser = data.users.find(u => u.userId === user.userId);
+            const sender = data.users.find(u => u.userId === senderId);
+            if (!currentUser || !sender) return;
+
+            currentUser.friendRequests = currentUser.friendRequests.filter(id => id !== senderId);
+            if (!currentUser.friends) currentUser.friends = [];
+            if (!currentUser.friends.includes(senderId)) currentUser.friends.push(senderId);
+            if (!sender.friends) sender.friends = [];
+            if (!sender.friends.includes(currentUser.userId)) sender.friends.push(currentUser.userId);
+            if (sender.sentRequests) sender.sentRequests = sender.sentRequests.filter(id => id !== currentUser.userId);
+
+            await updateData(data);
+            showToast(`✅ ${sender.username} sekarang menjadi temanmu!`, 'success');
+            loadFriendsData();
+
+        } catch (error) {
+            showToast('❌ Gagal menerima permintaan', 'error');
+        }
+    }
+
+    async function rejectFriend(senderId) {
+        if (!checkSession()) return;
+        const user = getUserSession();
+        if (!user) return;
+
+        try {
+            const data = await getData();
+            const currentUser = data.users.find(u => u.userId === user.userId);
+            if (!currentUser) return;
+
+            currentUser.friendRequests = currentUser.friendRequests.filter(id => id !== senderId);
+            await updateData(data);
+            showToast('❌ Permintaan ditolak', 'info');
+            loadFriendsData();
+
+        } catch (error) {
+            showToast('❌ Gagal menolak permintaan', 'error');
+        }
+    }
+
+    async function removeFriend(friendId) {
+        if (!confirm('Yakin ingin menghapus teman ini?')) return;
+        if (!checkSession()) return;
+        const user = getUserSession();
+        if (!user) return;
+
+        try {
+            const data = await getData();
+            const currentUser = data.users.find(u => u.userId === user.userId);
+            const friend = data.users.find(u => u.userId === friendId);
+            if (!currentUser || !friend) return;
+
+            currentUser.friends = currentUser.friends.filter(id => id !== friendId);
+            friend.friends = friend.friends.filter(id => id !== currentUser.userId);
+
+            await updateData(data);
+            showToast(`🗑️ ${friend.username} dihapus dari teman`, 'info');
+            loadFriendsData();
+
+        } catch (error) {
+            showToast('❌ Gagal menghapus teman', 'error');
+        }
+    }
+
+    // ===== SEARCH FRIEND =====
+    document.getElementById('searchFriendBtn').addEventListener('click', async () => {
+        if (!checkSession()) return;
+        const input = document.getElementById('searchFriendInput');
+        const userId = input.value.trim();
+        const resultDiv = document.getElementById('searchResult');
+        const resultContent = document.getElementById('resultContent');
+        
+        if (!userId || userId.length !== 8 || !/^\d+$/.test(userId)) {
+            showToast('⚠️ Masukkan ID 8 digit yang valid!', 'error');
+            return;
+        }
+
+        const user = getUserSession();
+        if (!user) return;
+
+        try {
+            const data = await getData();
+            const target = data.users.find(u => u.userId === userId);
+            const currentUser = data.users.find(u => u.userId === user.userId);
+
+            if (!target) {
+                showToast('❌ User dengan ID tersebut tidak ditemukan', 'error');
+                resultDiv.classList.remove('show');
+                return;
+            }
+
+            if (target.userId === currentUser.userId) {
+                showToast('⚠️ Itu ID Anda sendiri!', 'info');
+                resultDiv.classList.remove('show');
+                return;
+            }
+
+            const isFriend = currentUser.friends && currentUser.friends.includes(target.userId);
+            const isRequestSent = currentUser.sentRequests && currentUser.sentRequests.includes(target.userId);
+            const isRequestReceived = currentUser.friendRequests && currentUser.friendRequests.includes(target.userId);
+
+            let btnHTML = '';
+            if (isFriend) {
+                btnHTML = `<button class="btn-add added" disabled><i class="fas fa-check"></i> Sudah Teman</button>`;
+            } else if (isRequestSent) {
+                btnHTML = `<button class="btn-add added" disabled><i class="fas fa-clock"></i> Menunggu</button>`;
+            } else if (isRequestReceived) {
+                btnHTML = `<button class="btn-add" onclick="acceptFriend('${target.userId}')"><i class="fas fa-check"></i> Terima</button>
+                          <button class="btn-sm reject" onclick="rejectFriend('${target.userId}')" style="padding:0.2rem 0.8rem;border-radius:30px;border:none;cursor:pointer;font-size:0.7rem;font-weight:600;background:#ff6b6b;color:white;">Tolak</button>`;
+            } else {
+                btnHTML = `<button class="btn-add" onclick="sendFriendRequest('${target.userId}')"><i class="fas fa-user-plus"></i> Tambah Teman</button>`;
+                if (target.status === 'online') {
+                    btnHTML += `<button class="btn-add" onclick="challengeFriend('${target.userId}')" style="background:#3d7a4a;border-color:#5da06b;margin-left:0.3rem;"><i class="fas fa-swords"></i> Tantang</button>`;
+                }
+            }
+
+            const rank = getRank(target.elo || 100);
+            resultContent.innerHTML = `
+                <div class="info">
+                    <div class="avatar">${target.username.charAt(0).toUpperCase()}</div>
+                    <div class="details">
+                        <div class="name">${target.username}</div>
+                        <div class="friend-id">ID: ${target.userId}</div>
+                        <div class="friend-status ${target.status === 'online' ? 'online' : 'offline'}">
+                            ${target.status === 'online' ? '🟢 Online' : '⚪ Offline'}
+                        </div>
+                        <div class="friend-elo">⭐ ELO: ${target.elo || 100} · ${rank.label}</div>
+                    </div>
+                </div>
+                <div class="actions">
+                    ${btnHTML}
+                </div>
+            `;
+            resultDiv.classList.add('show');
+
+        } catch (error) {
+            showToast('❌ Gagal mencari user', 'error');
+        }
+    });
+
+    document.getElementById('searchFriendInput').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') document.getElementById('searchFriendBtn').click();
+    });
+
+    async function sendFriendRequest(targetId) {
+        if (!checkSession()) return;
+        const user = getUserSession();
+        if (!user) return;
+
+        try {
+            const data = await getData();
+            const currentUser = data.users.find(u => u.userId === user.userId);
+            const target = data.users.find(u => u.userId === targetId);
+            if (!currentUser || !target) return;
+
+            if (!target.friendRequests) target.friendRequests = [];
+            if (!target.friendRequests.includes(currentUser.userId)) {
+                target.friendRequests.push(currentUser.userId);
+            }
+            if (!currentUser.sentRequests) currentUser.sentRequests = [];
+            if (!currentUser.sentRequests.includes(targetId)) {
+                currentUser.sentRequests.push(targetId);
+            }
+
+            await updateData(data);
+            showToast(`✅ Permintaan teman dikirim ke ${target.username}!`, 'success');
+            document.getElementById('searchResult').classList.remove('show');
+            document.getElementById('searchFriendInput').value = '';
+            loadFriendsData();
+
+        } catch (error) {
+            showToast('❌ Gagal mengirim permintaan', 'error');
+        }
+    }
+
+    // ===== GET RANK =====
+    function getRank(elo) {
+        if (elo >= 2000) return { label: 'Grandmaster', class: 'grandmaster' };
+        if (elo >= 1700) return { label: 'Master', class: 'master' };
+        if (elo >= 1400) return { label: 'Ahli', class: 'ahli' };
+        if (elo >= 1200) return { label: 'Menengah', class: 'menengah' };
+        return { label: 'Pemula', class: 'pemula' };
+    }
+
+    // ===== LEADERBOARD =====
+    async function loadLeaderboard() {
+        if (!checkSession()) return;
+        try {
+            const data = await getData();
+            const sorted = [...data.users].sort((a, b) => (b.elo || 100) - (a.elo || 100));
+            const list = document.getElementById('leaderboardList');
+            list.innerHTML = '';
+            const medals = ['🥇', '🥈', '🥉'];
+            const user = getUserSession();
+
+            sorted.slice(0, 10).forEach((u, i) => {
+                const div = document.createElement('div');
+                div.className = 'lb-item';
+                const medal = i < 3 ? medals[i] : `#${i+1}`;
+                const isCurrent = user && u.userId === user.userId;
+                const rank = getRank(u.elo || 100);
+
+                div.innerHTML = `
+                    <span class="lb-rank">${medal}</span>
+                    <span class="lb-avatar">${u.username.charAt(0).toUpperCase()}</span>
+                    <span class="lb-name ${isCurrent ? 'highlight' : ''}">
+                        ${u.username} ${isCurrent ? '⭐' : ''}
+                    </span>
+                    <span class="lb-rank-badge ${rank.class}">${rank.label}</span>
+                    <span class="lb-elo">${u.elo || 100}</span>
+                `;
+                list.appendChild(div);
+            });
+        } catch (error) {
+            document.getElementById('leaderboardList').innerHTML = '<div class="loading-text">❌ Gagal memuat leaderboard</div>';
+        }
+    }
+
+    // ===== DISPLAY DASHBOARD =====
+    function displayDashboard(userData) {
+        const rank = getRank(userData.elo || 100);
+        document.getElementById('userIdText').textContent = userData.userId || '00000000';
+        document.getElementById('userName').textContent = userData.username;
+        document.getElementById('userElo').textContent = userData.elo || 100;
+        document.getElementById('userRank').textContent = rank.label;
+        document.getElementById('eloStat').textContent = userData.elo || 100;
+        document.getElementById('rankStat').textContent = rank.label;
+        document.getElementById('totalGames').textContent = userData.gamesPlayed || 0;
+        document.getElementById('totalWins').textContent = userData.gamesWon || 0;
+
+        const statusEl = document.getElementById('userStatus');
+        if (userData.status === 'online') {
+            statusEl.className = 'status online';
+            statusEl.textContent = 'Online';
+        } else {
+            statusEl.className = 'status offline';
+            statusEl.textContent = 'Offline';
+        }
+
+        const gamesPlayed = userData.gamesPlayed || 0;
+        const gamesWon = userData.gamesWon || 0;
+        const totalAccuracy = userData.totalAccuracy || 0;
+        const totalSpeed = userData.totalSpeed || 0;
+        const gamesWithStats = userData.gamesWithStats || 0;
+        const currentStreak = userData.currentStreak || 0;
+
+        const winRate = gamesPlayed > 0 ? Math.round((gamesWon / gamesPlayed) * 100) : 0;
+        document.getElementById('winRateStat').textContent = winRate + '%';
+        document.getElementById('winRateBar').style.width = winRate + '%';
+
+        const avgAccuracy = gamesWithStats > 0 ? Math.round(totalAccuracy / gamesWithStats) : 0;
+        document.getElementById('accuracyStat').textContent = avgAccuracy + '%';
+
+        const avgSpeed = gamesWithStats > 0 ? (totalSpeed / gamesWithStats) : 0;
+        document.getElementById('speedStat').textContent = avgSpeed > 0 ? avgSpeed.toFixed(1) + 's' : '--';
+
+        document.getElementById('streakStat').textContent = currentStreak;
+    }
+
+    // ===== LOAD DASHBOARD =====
+    async function loadDashboard() {
+        console.log('🔄 Loading dashboard...');
+        
+        if (!checkSession()) return;
+        
+        const user = getUserSession();
+        if (!user) return;
+
+        try {
+            const data = await getData();
+            console.log('📊 Data from JSONBin:', data);
+            
+            const currentUser = data.users.find(u => u.userId === user.userId);
+            if (currentUser) {
+                console.log('✅ User ditemukan:', currentUser.username);
+                
+                if (currentUser.status !== 'online') {
+                    currentUser.status = 'online';
+                    await updateData(data);
+                }
+                
+                localStorage.setItem('chess_user', JSON.stringify({
+                    userId: currentUser.userId,
+                    username: currentUser.username,
+                    elo: currentUser.elo || 100,
+                    rank: currentUser.rank || 'Pemula'
+                }));
+                
+                displayDashboard(currentUser);
+                console.log('✅ Dashboard loaded successfully');
+            } else {
+                console.log('❌ User tidak ditemukan di database');
+                localStorage.removeItem('chess_user');
+                window.location.href = 'index.html';
+            }
+        } catch (error) {
+            console.error('❌ Error loading dashboard:', error);
+            showToast('❌ Gagal memuat data', 'error');
+        }
+    }
+
+    // ===== LOGOUT =====
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+        const user = getUserSession();
+        if (user) {
+            try {
+                const data = await getData();
+                const currentUser = data.users.find(u => u.userId === user.userId);
+                if (currentUser) {
+                    currentUser.status = 'offline';
+                    await updateData(data);
+                }
+            } catch (e) {}
+        }
+        localStorage.removeItem('chess_user');
+        window.location.href = 'index.html';
+    });
+
+    // ===== PLAY OFFLINE =====
+    document.getElementById('playOfflineBtn').addEventListener('click', () => {
+        if (!checkSession()) return;
+        const user = getUserSession();
+        if (!user) return;
+
+        const settings = {
+            difficulty: document.getElementById('difficultySelect').value,
+            timerEnabled: document.getElementById('timerToggle').checked,
+            timerMinutes: parseInt(document.getElementById('timerMinutes').value) || 5,
+            username: user.username,
+            elo: user.elo,
+            playerColor: document.getElementById('playerColorSelect').value
+        };
+        localStorage.setItem('game_settings', JSON.stringify(settings));
+        window.location.href = 'arena.html';
+    });
+
+    // ===== INIT =====
+    console.log('🚀 Dashboard initialized');
+    localStorage.removeItem('online_room');
+    loadDashboard();
+    
+    setTimeout(() => {
+        loadFriendsData();
+        loadLeaderboard();
+        loadOnlineFriends();
+        loadChallenges();
+    }, 1000);
+    
+    // Start auto refresh untuk challenge & friend requests
+    startAutoRefresh();
+</script>
+</body>
+</html>
