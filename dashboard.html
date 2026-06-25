@@ -812,7 +812,6 @@
         .lb-item .lb-rank-badge.menengah { background: #c97ae0; color: white; }
         .lb-item .lb-rank-badge.pemula { background: #5a7394; color: white; }
 
-        /* ===== TAB RIWAYAT ===== */
         .history-game-list {
             display: flex;
             flex-direction: column;
@@ -881,7 +880,6 @@
         .footer { margin-top: 1rem; color: #5a7394; font-size: 0.7rem; text-align: center; }
         .loading-text { color: #b6cef0; text-align: center; padding: 0.5rem; font-size: 0.85rem; }
 
-        /* Modal Detail Riwayat */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -953,7 +951,7 @@
         .modal-box .move-list .move-white { color: #e8f0ff; }
         .modal-box .move-list .move-black { color: #b6cef0; }
 
-        /* Popup Match Confirmation */
+        /* POPUP MATCH CONFIRMATION - DUAL SIDE */
         .match-confirm-overlay {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
@@ -1038,6 +1036,11 @@
             font-size: 0.7rem;
             margin-top: 0.8rem;
         }
+        .match-confirm-box .waiting-text {
+            color: #f5c542;
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+        }
 
         @keyframes fadeIn { 0% { opacity: 0; } 100% { opacity: 1; } }
         @keyframes scaleIn { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
@@ -1053,8 +1056,6 @@
             .game-menu-grid { grid-template-columns: 1fr; }
             .settings-row { flex-direction: column; align-items: stretch; }
             .tab-btn { padding: 0.3rem 0.8rem; font-size: 0.7rem; }
-            .online-row { flex-direction: column; align-items: stretch; }
-            .online-row .input-group { width: 100%; }
             .friend-search { flex-direction: column; }
             .friend-item { flex-wrap: wrap; gap: 0.5rem; }
             .friend-item .actions { width: 100%; justify-content: flex-end; }
@@ -1245,13 +1246,11 @@
                 <div class="result-item" id="resultContent"></div>
             </div>
 
-            <!-- Friend Requests -->
             <div class="friend-requests-list">
                 <div class="menu-title" style="font-size:0.9rem; margin-bottom:0.5rem;"><i class="fas fa-bell"></i> Permintaan Teman</div>
                 <div id="friendRequestsList"><div class="empty-state"><p>Tidak ada permintaan teman</p></div></div>
             </div>
 
-            <!-- Friends List -->
             <div>
                 <div class="menu-title" style="font-size:0.9rem; margin-bottom:0.5rem;"><i class="fas fa-users"></i> Daftar Teman</div>
                 <div id="friendsList"><div class="empty-state"><i class="fas fa-user-friends"></i><p>Belum ada teman. Cari teman dengan ID di atas!</p></div></div>
@@ -1324,7 +1323,7 @@
     <div class="match-confirm-box">
         <div class="icon">🎮</div>
         <h2>Lawan Ditemukan!</h2>
-        <div class="sub">Seorang pemain siap bertanding dengan Anda</div>
+        <div class="sub" id="matchSubText">Seorang pemain siap bertanding dengan Anda</div>
         <div class="opponent-info" id="matchOpponentInfo">
             <div class="avatar" id="matchOpponentAvatar">P</div>
             <div>
@@ -1335,11 +1334,14 @@
         <div class="detail" id="matchDetail">
             ⏱️ Timer: 5 menit · Anda bermain sebagai <strong id="matchPlayerColor">Putih</strong>
         </div>
-        <div class="btn-group">
+        <div class="btn-group" id="matchBtnGroup">
             <button class="btn-confirm" id="matchConfirmBtn"><i class="fas fa-check"></i> Terima & Masuk</button>
             <button class="btn-cancel" id="matchCancelBtn"><i class="fas fa-times"></i> Batalkan</button>
         </div>
-        <div class="timeout-text" id="matchTimeoutText">Menunggu konfirmasi...</div>
+        <div class="waiting-text" id="matchWaitingText" style="display:none;">
+            <i class="fas fa-spinner fa-spin"></i> Menunggu konfirmasi dari lawan...
+        </div>
+        <div class="timeout-text" id="matchTimeoutText">Waktu tersisa: <span id="matchCountdown">30</span> detik</div>
     </div>
 </div>
 
@@ -1363,10 +1365,10 @@ async function getData() {
         });
         if (!response.ok) throw new Error('Gagal mengambil data');
         const data = await response.json();
-        return data.record || { users: [], rooms: [], matchmaking: [], gameHistory: [] };
+        return data.record || { users: [], rooms: [], matchmaking: [], pendingMatches: [] };
     } catch (error) {
         console.error('Error getData:', error);
-        return { users: [], rooms: [], matchmaking: [], gameHistory: [] };
+        return { users: [], rooms: [], matchmaking: [], pendingMatches: [] };
     }
 }
 
@@ -1392,21 +1394,14 @@ async function updateData(data) {
 // ==================== TOAST ==================================
 // ============================================================
 function showToast(message, type = 'info') {
-    const toast = document.getElementById('toast');
-    if (!toast) {
-        const newToast = document.createElement('div');
-        newToast.id = 'toast';
-        newToast.className = `toast ${type}`;
-        newToast.textContent = message;
-        newToast.style.display = 'block';
-        document.body.appendChild(newToast);
-        setTimeout(() => { newToast.remove(); }, 4000);
-        return;
-    }
-    toast.textContent = message;
+    const existing = document.getElementById('toast');
+    if (existing) existing.remove();
+    const toast = document.createElement('div');
+    toast.id = 'toast';
     toast.className = `toast ${type}`;
-    toast.style.display = 'block';
-    setTimeout(() => { toast.style.display = 'none'; }, 4000);
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => { toast.remove(); }, 4000);
 }
 
 // ============================================================
@@ -1417,9 +1412,7 @@ function getUserSession() {
     if (!data) return null;
     try {
         const parsed = JSON.parse(data);
-        if (parsed && parsed.username && parsed.userId) {
-            return parsed;
-        }
+        if (parsed && parsed.username && parsed.userId) return parsed;
         localStorage.removeItem('chess_user');
         return null;
     } catch (e) {
@@ -1429,8 +1422,7 @@ function getUserSession() {
 }
 
 function checkSession() {
-    const user = getUserSession();
-    if (!user) {
+    if (!getUserSession()) {
         window.location.href = 'index.html';
         return false;
     }
@@ -1517,6 +1509,7 @@ document.getElementById('onlineCard').addEventListener('click', () => {
     panel.classList.toggle('show');
     if (panel.classList.contains('show')) {
         loadOnlineFriends();
+        checkPendingMatch();
     }
 });
 
@@ -1529,9 +1522,9 @@ document.getElementById('offlineCard').addEventListener('click', () => {
 // ============================================================
 let selectedMode = 'challenge';
 let isSearching = false;
-let searchInterval = null;
 let refreshInterval = null;
-let matchFoundData = null;
+let matchCountdown = 30;
+let countdownInterval = null;
 
 document.querySelectorAll('.online-mode-card').forEach(card => {
     card.addEventListener('click', () => {
@@ -1593,7 +1586,6 @@ async function createChallengeRoom(targetUserId, targetUsername) {
             timerMinutes: timerMinutes
         }));
         
-        // Randomize who is white
         const userIsWhite = Math.random() < 0.5;
         
         const room = {
@@ -1605,10 +1597,7 @@ async function createChallengeRoom(targetUserId, targetUsername) {
             status: 'waiting',
             board: null,
             currentTurn: 'w',
-            castling: {
-                w: { kingSide: true, queenSide: true },
-                b: { kingSide: true, queenSide: true }
-            },
+            castling: { w: { kingSide: true, queenSide: true }, b: { kingSide: true, queenSide: true } },
             enPassantTarget: null,
             lastMove: null,
             createdAt: Date.now(),
@@ -1644,13 +1633,11 @@ async function createChallengeRoom(targetUserId, targetUsername) {
             }
         }
 
-        // Save room info for the host
         localStorage.setItem('online_room', JSON.stringify({
             roomId: roomId,
             isHost: userIsWhite
         }));
         
-        // Redirect to arena with a slight delay
         setTimeout(() => {
             window.location.href = 'arena-online.html';
         }, 500);
@@ -1705,128 +1692,212 @@ async function challengeFriend(friendId) {
 // ==================== MATCHMAKING SYSTEM ====================
 // ============================================================
 let matchmakingPolling = null;
-let pendingMatch = null;
+let pendingMatchId = null;
+
+// Check for pending match invitations
+async function checkPendingMatch() {
+    try {
+        const user = getUserSession();
+        if (!user) return;
+        
+        const data = await getData();
+        if (!data.pendingMatches) return;
+        
+        // Check if there's a pending match for this user
+        const pending = data.pendingMatches.find(m => 
+            m.player1Id === user.userId || m.player2Id === user.userId
+        );
+        
+        if (pending) {
+            // Check if match is still pending and not expired
+            if (pending.status === 'pending' && (Date.now() - pending.createdAt) < 30000) {
+                const opponentId = pending.player1Id === user.userId ? pending.player2Id : pending.player1Id;
+                const opponent = data.users.find(u => u.userId === opponentId);
+                
+                if (opponent) {
+                    const userIsWhite = pending.player1Id === user.userId ? pending.player1IsWhite : !pending.player1IsWhite;
+                    showMatchConfirmation(opponent, pending.timerMinutes, userIsWhite, pending.matchId);
+                    return true;
+                }
+            } else {
+                // Remove expired or completed match
+                data.pendingMatches = data.pendingMatches.filter(m => m.matchId !== pending.matchId);
+                await updateData(data);
+            }
+        }
+        return false;
+    } catch (error) {
+        console.error('Error checking pending match:', error);
+        return false;
+    }
+}
 
 // Show match confirmation popup
-function showMatchConfirmation(opponent, timerMinutes, userIsWhite) {
+function showMatchConfirmation(opponent, timerMinutes, userIsWhite, matchId) {
     const overlay = document.getElementById('matchConfirmOverlay');
     document.getElementById('matchOpponentAvatar').textContent = opponent.username.charAt(0).toUpperCase();
     document.getElementById('matchOpponentName').textContent = opponent.username;
     document.getElementById('matchOpponentElo').textContent = `⭐ ELO: ${opponent.elo || 100}`;
     document.getElementById('matchPlayerColor').textContent = userIsWhite ? 'Putih' : 'Hitam';
     document.getElementById('matchDetail').innerHTML = `⏱️ Timer: ${timerMinutes} menit · Anda bermain sebagai <strong>${userIsWhite ? 'Putih' : 'Hitam'}</strong>`;
-    document.getElementById('matchTimeoutText').textContent = 'Menunggu konfirmasi...';
+    document.getElementById('matchSubText').textContent = 'Seorang pemain siap bertanding dengan Anda';
+    document.getElementById('matchBtnGroup').style.display = 'flex';
+    document.getElementById('matchWaitingText').style.display = 'none';
     
+    pendingMatchId = matchId;
+    matchCountdown = 30;
+    document.getElementById('matchCountdown').textContent = matchCountdown;
     overlay.classList.add('show');
-    pendingMatch = {
-        opponent: opponent,
-        timerMinutes: timerMinutes,
-        userIsWhite: userIsWhite,
-        confirmed: false
-    };
+    
+    if (countdownInterval) clearInterval(countdownInterval);
+    countdownInterval = setInterval(() => {
+        matchCountdown--;
+        document.getElementById('matchCountdown').textContent = matchCountdown;
+        if (matchCountdown <= 0) {
+            clearInterval(countdownInterval);
+            // Auto cancel if timeout
+            cancelMatch(matchId);
+        }
+    }, 1000);
 }
 
 // Hide match confirmation popup
 function hideMatchConfirmation() {
     document.getElementById('matchConfirmOverlay').classList.remove('show');
-    pendingMatch = null;
+    if (countdownInterval) {
+        clearInterval(countdownInterval);
+        countdownInterval = null;
+    }
+    pendingMatchId = null;
 }
 
-// Accept match
+// Cancel match
+async function cancelMatch(matchId) {
+    try {
+        const user = getUserSession();
+        if (!user) return;
+        
+        const data = await getData();
+        if (data.pendingMatches) {
+            data.pendingMatches = data.pendingMatches.filter(m => m.matchId !== matchId);
+            await updateData(data);
+        }
+        hideMatchConfirmation();
+        showToast('❌ Pencarian dibatalkan', 'info');
+    } catch (error) {
+        console.error('Error canceling match:', error);
+    }
+}
+
+// Accept match - both players confirm then create room
 document.getElementById('matchConfirmBtn').addEventListener('click', async () => {
-    if (!pendingMatch) return;
+    if (!pendingMatchId) return;
     
     try {
         const user = getUserSession();
         if (!user) return;
         
         const data = await getData();
-        const opponent = data.users.find(u => u.userId === pendingMatch.opponent.userId);
+        const pending = data.pendingMatches?.find(m => m.matchId === pendingMatchId);
         
-        if (!opponent) {
-            showToast('❌ Lawan tidak ditemukan', 'error');
+        if (!pending) {
+            showToast('❌ Match sudah tidak tersedia', 'error');
             hideMatchConfirmation();
-            cancelSearch();
             return;
         }
         
-        // Check if opponent is still in matchmaking
-        const inQueue = data.matchmaking?.find(m => m.userId === opponent.userId);
-        if (!inQueue) {
-            showToast('❌ Lawan sudah tidak tersedia', 'error');
-            hideMatchConfirmation();
-            cancelSearch();
-            return;
-        }
+        // Mark this player as confirmed
+        const playerKey = pending.player1Id === user.userId ? 'player1Confirmed' : 'player2Confirmed';
+        pending[playerKey] = true;
+        pending.status = 'confirming';
         
-        // Remove both from matchmaking
-        data.matchmaking = data.matchmaking.filter(m => m.userId !== user.userId && m.userId !== opponent.userId);
-        
-        // Create room
-        const roomId = generateRoomId();
-        const timerMinutes = pendingMatch.timerMinutes;
-        const userIsWhite = pendingMatch.userIsWhite;
-        
-        const room = {
-            roomId: roomId,
-            hostId: userIsWhite ? user.userId : opponent.userId,
-            hostName: userIsWhite ? user.username : opponent.username,
-            player2Id: userIsWhite ? opponent.userId : user.userId,
-            player2Name: userIsWhite ? opponent.username : user.username,
-            status: 'playing',
-            board: createEmptyBoard(),
-            currentTurn: 'w',
-            castling: {
-                w: { kingSide: true, queenSide: true },
-                b: { kingSide: true, queenSide: true }
-            },
-            enPassantTarget: null,
-            lastMove: null,
-            createdAt: Date.now(),
-            challenge: false,
-            matchmaking: true,
-            timerEnabled: true,
-            timerMinutes: timerMinutes,
-            gameMoves: [],
-            moveTimestamps: [],
-            timeWhite: timerMinutes * 60,
-            timeBlack: timerMinutes * 60,
-            activeTimer: 'w'
-        };
-        
-        if (!data.rooms) data.rooms = [];
-        data.rooms.push(room);
         await updateData(data);
         
-        // Save room info
-        localStorage.setItem('online_room', JSON.stringify({
-            roomId: roomId,
-            isHost: userIsWhite
-        }));
-        
-        localStorage.setItem('matchmaking_settings', JSON.stringify({
-            timerEnabled: true,
-            timerMinutes: timerMinutes
-        }));
-        
-        hideMatchConfirmation();
-        cancelSearch();
-        showToast(`🎮 Masuk ke arena! Anda ${userIsWhite ? 'Putih' : 'Hitam'}`, 'success');
-        window.location.href = 'arena-online.html';
+        // Check if both players have confirmed
+        if (pending.player1Confirmed && pending.player2Confirmed) {
+            // Both confirmed - create room!
+            const player1 = data.users.find(u => u.userId === pending.player1Id);
+            const player2 = data.users.find(u => u.userId === pending.player2Id);
+            
+            if (!player1 || !player2) {
+                showToast('❌ Salah satu pemain tidak ditemukan', 'error');
+                hideMatchConfirmation();
+                return;
+            }
+            
+            const roomId = generateRoomId();
+            const timerMinutes = pending.timerMinutes || 5;
+            
+            const room = {
+                roomId: roomId,
+                hostId: pending.player1IsWhite ? pending.player1Id : pending.player2Id,
+                hostName: pending.player1IsWhite ? player1.username : player2.username,
+                player2Id: pending.player1IsWhite ? pending.player2Id : pending.player1Id,
+                player2Name: pending.player1IsWhite ? player2.username : player1.username,
+                status: 'playing',
+                board: createEmptyBoard(),
+                currentTurn: 'w',
+                castling: { w: { kingSide: true, queenSide: true }, b: { kingSide: true, queenSide: true } },
+                enPassantTarget: null,
+                lastMove: null,
+                createdAt: Date.now(),
+                challenge: false,
+                matchmaking: true,
+                timerEnabled: true,
+                timerMinutes: timerMinutes,
+                gameMoves: [],
+                moveTimestamps: [],
+                timeWhite: timerMinutes * 60,
+                timeBlack: timerMinutes * 60,
+                activeTimer: 'w'
+            };
+            
+            if (!data.rooms) data.rooms = [];
+            data.rooms.push(room);
+            
+            // Remove pending match
+            data.pendingMatches = data.pendingMatches.filter(m => m.matchId !== pendingMatchId);
+            
+            await updateData(data);
+            
+            // Save room info
+            const userIsHost = room.hostId === user.userId;
+            localStorage.setItem('online_room', JSON.stringify({
+                roomId: roomId,
+                isHost: userIsHost
+            }));
+            
+            localStorage.setItem('matchmaking_settings', JSON.stringify({
+                timerEnabled: true,
+                timerMinutes: timerMinutes
+            }));
+            
+            hideMatchConfirmation();
+            showToast(`🎮 Masuk ke arena! Anda ${userIsHost ? 'Putih' : 'Hitam'}`, 'success');
+            window.location.href = 'arena-online.html';
+            
+        } else {
+            // Waiting for other player
+            document.getElementById('matchBtnGroup').style.display = 'none';
+            document.getElementById('matchWaitingText').style.display = 'block';
+            document.getElementById('matchSubText').textContent = 'Menunggu konfirmasi dari lawan...';
+            showToast('⏳ Menunggu konfirmasi dari lawan...', 'info');
+        }
         
     } catch (error) {
         console.error('Error accepting match:', error);
         showToast('❌ Gagal bergabung', 'error');
         hideMatchConfirmation();
-        cancelSearch();
     }
 });
 
-// Cancel match
-document.getElementById('matchCancelBtn').addEventListener('click', () => {
+// Cancel match button
+document.getElementById('matchCancelBtn').addEventListener('click', async () => {
+    if (pendingMatchId) {
+        await cancelMatch(pendingMatchId);
+    }
     hideMatchConfirmation();
     cancelSearch();
-    showToast('❌ Pencarian dibatalkan', 'info');
 });
 
 // Start matchmaking
@@ -1857,7 +1928,6 @@ function startMatchmaking() {
             const data = await getData();
             if (!data.matchmaking) data.matchmaking = [];
             
-            // Remove existing entry
             data.matchmaking = data.matchmaking.filter(m => m.userId !== user.userId);
             
             data.matchmaking.push({
@@ -1870,8 +1940,6 @@ function startMatchmaking() {
             });
             
             await updateData(data);
-            
-            // Start polling
             startMatchmakingPolling();
             
         } catch (error) {
@@ -1903,7 +1971,6 @@ function startMatchmakingPolling() {
             // Find opponent (different user)
             const opponent = data.matchmaking.find(m => m.userId !== user.userId);
             if (opponent) {
-                // Found a match!
                 const opponentUser = data.users.find(u => u.userId === opponent.userId);
                 if (!opponentUser) {
                     data.matchmaking = data.matchmaking.filter(m => m.userId !== opponent.userId);
@@ -1913,16 +1980,47 @@ function startMatchmakingPolling() {
                 
                 // Remove both from matchmaking
                 data.matchmaking = data.matchmaking.filter(m => m.userId !== user.userId && m.userId !== opponent.userId);
-                await updateData(data);
                 
-                // Show confirmation popup
+                // Create pending match invitation for BOTH players
+                const matchId = generateRoomId();
                 const userIsWhite = Math.random() < 0.5;
                 const timerMinutes = inQueue.timerMinutes || 5;
                 
-                showMatchConfirmation(opponentUser, timerMinutes, userIsWhite);
+                if (!data.pendingMatches) data.pendingMatches = [];
                 
-                // Stop polling
-                cancelSearch();
+                // Remove any existing pending matches for these players
+                data.pendingMatches = data.pendingMatches.filter(m => 
+                    m.player1Id !== user.userId && m.player2Id !== user.userId &&
+                    m.player1Id !== opponent.userId && m.player2Id !== opponent.userId
+                );
+                
+                data.pendingMatches.push({
+                    matchId: matchId,
+                    player1Id: user.userId,
+                    player1Name: user.username,
+                    player1IsWhite: userIsWhite,
+                    player1Confirmed: false,
+                    player2Id: opponent.userId,
+                    player2Name: opponent.username,
+                    player2Confirmed: false,
+                    timerMinutes: timerMinutes,
+                    status: 'pending',
+                    createdAt: Date.now()
+                });
+                
+                await updateData(data);
+                
+                // Show confirmation popup for current user
+                showMatchConfirmation(opponentUser, timerMinutes, userIsWhite, matchId);
+                
+                // Stop polling but keep searching status
+                if (matchmakingPolling) {
+                    clearInterval(matchmakingPolling);
+                    matchmakingPolling = null;
+                }
+                
+                // Update search status to waiting for opponent
+                document.getElementById('searchStatus').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menunggu konfirmasi dari lawan...';
             }
             
         } catch (error) {
@@ -2147,7 +2245,6 @@ async function acceptChallenge(roomId, senderId) {
             return;
         }
 
-        // Determine if current user is white (host is white)
         const userIsWhite = room.hostId === user.userId;
         
         localStorage.setItem('matchmaking_settings', JSON.stringify({
@@ -2155,15 +2252,12 @@ async function acceptChallenge(roomId, senderId) {
             timerMinutes: room.timerMinutes || 5
         }));
 
-        // Check if user is already in the room
         if (room.player2Id === user.userId || room.hostId === user.userId) {
-            // User is already in the room, just update status
             room.status = 'playing';
             room.board = createEmptyBoard();
             room.timeWhite = (room.timerMinutes || 5) * 60;
             room.timeBlack = (room.timerMinutes || 5) * 60;
         } else {
-            // User is not in the room, add them
             room.player2Id = user.userId;
             room.player2Name = user.username;
             room.status = 'playing';
@@ -2718,28 +2812,6 @@ function displayDashboard(userData) {
 }
 
 // ============================================================
-// ==================== SAVE HISTORY ===========================
-// ============================================================
-async function saveGameHistory(gameData) {
-    try {
-        const user = getUserSession();
-        if (!user) return;
-        
-        const data = await getData();
-        const currentUser = data.users.find(u => u.userId === user.userId);
-        if (!currentUser) return;
-        
-        if (!currentUser.gameHistory) currentUser.gameHistory = [];
-        currentUser.gameHistory.push(gameData);
-        
-        await updateData(data);
-        console.log('✅ Game history saved');
-    } catch (error) {
-        console.error('❌ Error saving history:', error);
-    }
-}
-
-// ============================================================
 // ==================== LOAD DASHBOARD =========================
 // ============================================================
 async function loadDashboard() {
@@ -2771,6 +2843,9 @@ async function loadDashboard() {
             if (currentUser.gameHistory) {
                 window._historyData = currentUser.gameHistory;
             }
+            
+            // Check for pending matches on load
+            await checkPendingMatch();
         } else {
             localStorage.removeItem('chess_user');
             window.location.href = 'index.html';
@@ -2835,7 +2910,11 @@ function startAutoRefresh() {
         if (document.getElementById('tabHistory').classList.contains('active')) {
             loadHistory();
         }
-    }, 5000);
+        // Check for pending matches periodically
+        if (!document.getElementById('matchConfirmOverlay').classList.contains('show')) {
+            checkPendingMatch();
+        }
+    }, 3000);
 }
 
 // ============================================================
