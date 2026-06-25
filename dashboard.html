@@ -1567,7 +1567,7 @@ async function challengeFriend(friendId) {
 }
 
 // ============================================================
-// ==================== MATCHMAKING ============================
+// ==================== MATCHMAKING - FIXED ====================
 // ============================================================
 document.getElementById('startOnlineBtn').addEventListener('click', async () => {
     if (!checkSession()) return;
@@ -1597,11 +1597,14 @@ document.getElementById('startOnlineBtn').addEventListener('click', async () => 
         const data = await getData();
         if (!data.matchmaking) data.matchmaking = [];
 
+        // Hapus user dari queue jika sudah ada
         data.matchmaking = data.matchmaking.filter(m => m.userId !== user.userId);
 
+        // Cari player lain di queue (bukan diri sendiri)
         const opponent = data.matchmaking.find(m => m.userId !== user.userId);
 
         if (opponent) {
+            // HAPUS OPPONENT DARI QUEUE
             data.matchmaking = data.matchmaking.filter(m => m.userId !== opponent.userId);
             await updateData(data);
 
@@ -1646,9 +1649,12 @@ document.getElementById('startOnlineBtn').addEventListener('click', async () => 
             }));
             
             showToast(`🎮 Dapat lawan! ${isHost ? 'Anda Putih' : 'Anda Hitam'}`, 'success');
+            
+            // Redirect ke arena
             window.location.href = 'arena-online.html';
 
         } else {
+            // Tidak ada player, masuk ke queue
             data.matchmaking.push({
                 userId: user.userId,
                 username: user.username,
@@ -1687,31 +1693,47 @@ function createEmptyBoard() {
 }
 
 let matchmakingPolling = null;
+let isRedirecting = false;
 
 function startMatchmakingPolling() {
     if (matchmakingPolling) clearInterval(matchmakingPolling);
+    isRedirecting = false;
+    
     matchmakingPolling = setInterval(async () => {
         try {
+            // Cegah multiple redirect
+            if (isRedirecting) return;
+            
             const user = getUserSession();
-            if (!user) { cancelSearch(); return; }
+            if (!user) { 
+                cancelSearch(); 
+                return; 
+            }
 
             const data = await getData();
-            const inQueue = data.matchmaking?.find(m => m.userId === user.userId);
             
+            // Cek apakah user masih di queue
+            const inQueue = data.matchmaking?.find(m => m.userId === user.userId);
             if (!inQueue) {
                 cancelSearch();
                 return;
             }
 
+            // Cari opponent (bukan diri sendiri)
             const opponent = data.matchmaking.find(m => m.userId !== user.userId);
+            
             if (opponent) {
-                data.matchmaking = data.matchmaking.filter(m => m.userId !== user.userId && m.userId !== opponent.userId);
-                await updateData(data);
-
-                const roomId = generateRoomId();
+                isRedirecting = true;
+                
+                // Hapus kedua player dari queue
+                data.matchmaking = data.matchmaking.filter(m => 
+                    m.userId !== user.userId && m.userId !== opponent.userId
+                );
+                
                 const timerEnabled = document.getElementById('onlineTimerToggle').checked;
                 const timerMinutes = parseInt(document.getElementById('onlineTimerMinutes').value) || 5;
                 
+                const roomId = generateRoomId();
                 const userIsWhite = Math.random() < 0.5;
                 
                 const room = {
@@ -1751,38 +1773,55 @@ function startMatchmakingPolling() {
                     isHost: isHost
                 }));
                 
+                // Hentikan polling
                 cancelSearch();
+                
                 showToast(`🎮 Dapat lawan! ${isHost ? 'Anda Putih' : 'Anda Hitam'}`, 'success');
-                window.location.href = 'arena-online.html';
+                
+                // Redirect ke arena
+                setTimeout(() => {
+                    window.location.href = 'arena-online.html';
+                }, 500);
             }
 
         } catch (error) {
             console.error('Polling error:', error);
         }
-    }, 3000);
+    }, 2000); // Kurangi interval menjadi 2 detik agar lebih responsif
 }
 
 function cancelSearch() {
     isSearching = false;
+    isRedirecting = false;
+    
     if (matchmakingPolling) {
         clearInterval(matchmakingPolling);
         matchmakingPolling = null;
     }
+    
     document.getElementById('startOnlineBtn').innerHTML = '<i class="fas fa-random"></i> Cari Player';
     document.getElementById('startOnlineBtn').className = 'btn-online-action green';
     document.getElementById('searchStatus').style.display = 'none';
+    document.getElementById('searchStatus').innerHTML = '';
     document.getElementById('cancelSearchBtn').style.display = 'none';
     
+    // Hapus user dari queue
     (async () => {
         try {
             const user = getUserSession();
             if (!user) return;
             const data = await getData();
             if (data.matchmaking) {
+                const before = data.matchmaking.length;
                 data.matchmaking = data.matchmaking.filter(m => m.userId !== user.userId);
-                await updateData(data);
+                if (before !== data.matchmaking.length) {
+                    await updateData(data);
+                    console.log('✅ Removed from matchmaking queue');
+                }
             }
-        } catch (e) {}
+        } catch (e) {
+            console.error('Error cancel search:', e);
+        }
     })();
 }
 
