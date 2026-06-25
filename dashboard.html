@@ -953,6 +953,68 @@
         .modal-box .move-list .move-white { color: #e8f0ff; }
         .modal-box .move-list .move-black { color: #b6cef0; }
 
+        /* Popup Match Confirmation */
+        .match-confirm-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.85);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            animation: fadeIn 0.3s ease;
+        }
+        .match-confirm-box {
+            background: #141e30;
+            padding: 2rem;
+            border-radius: 2rem;
+            border: 1px solid #2a405a;
+            max-width: 420px;
+            width: 90%;
+            text-align: center;
+            color: #e8f0ff;
+            animation: scaleIn 0.3s ease;
+        }
+        .match-confirm-box .icon { font-size: 4rem; margin-bottom: 0.5rem; }
+        .match-confirm-box h2 { margin-bottom: 0.3rem; }
+        .match-confirm-box .sub { color: #b6cef0; margin-bottom: 0.5rem; }
+        .match-confirm-box .detail { color: #8aa3c9; font-size: 0.85rem; margin-bottom: 1rem; }
+        .match-confirm-box .btn-group { display: flex; gap: 1rem; justify-content: center; }
+        .match-confirm-box .btn-confirm {
+            background: #3d7a4a;
+            border: none;
+            color: white;
+            padding: 0.6rem 2rem;
+            border-radius: 40px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 1rem;
+            border: 1px solid #5da06b;
+            transition: 0.2s;
+        }
+        .match-confirm-box .btn-confirm:hover { background: #4f9760; }
+        .match-confirm-box .btn-cancel {
+            background: #7a4a4a;
+            border: none;
+            color: white;
+            padding: 0.6rem 2rem;
+            border-radius: 40px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 1rem;
+            border: 1px solid #a05d5d;
+            transition: 0.2s;
+        }
+        .match-confirm-box .btn-cancel:hover { background: #965757; }
+        .match-confirm-box .timeout-text {
+            color: #5a7394;
+            font-size: 0.7rem;
+            margin-top: 0.8rem;
+        }
+
+        @keyframes fadeIn { 0% { opacity: 0; } 100% { opacity: 1; } }
+        @keyframes scaleIn { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+
         @media (max-width: 600px) {
             .dashboard-container { padding: 1rem; }
             .header-left h1 { font-size: 1.1rem; }
@@ -978,6 +1040,8 @@
             .challenge-item .actions { width: 100%; justify-content: flex-end; }
             .history-game-item { flex-direction: column; align-items: stretch; text-align: center; }
             .history-game-item .game-info { justify-content: center; }
+            .match-confirm-box { padding: 1.5rem; }
+            .match-confirm-box .btn-group { flex-direction: column; }
         }
     </style>
 </head>
@@ -1457,7 +1521,6 @@ async function createChallengeRoom(targetUserId, targetUsername) {
         const timerEnabled = document.getElementById('onlineTimerToggle').checked;
         const timerMinutes = parseInt(document.getElementById('onlineTimerMinutes').value) || 5;
         
-        // Simpan setting timer untuk matchmaking
         localStorage.setItem('matchmaking_settings', JSON.stringify({
             timerEnabled: timerEnabled,
             timerMinutes: timerMinutes
@@ -1569,6 +1632,10 @@ async function challengeFriend(friendId) {
 // ============================================================
 // ==================== MATCHMAKING - FIXED ====================
 // ============================================================
+let matchmakingPolling = null;
+let isRedirecting = false;
+let matchFound = false;
+
 document.getElementById('startOnlineBtn').addEventListener('click', async () => {
     if (!checkSession()) return;
     const user = getUserSession();
@@ -1587,7 +1654,6 @@ document.getElementById('startOnlineBtn').addEventListener('click', async () => 
     const timerEnabled = document.getElementById('onlineTimerToggle').checked;
     const timerMinutes = parseInt(document.getElementById('onlineTimerMinutes').value) || 5;
 
-    // Simpan setting timer untuk matchmaking
     localStorage.setItem('matchmaking_settings', JSON.stringify({
         timerEnabled: timerEnabled,
         timerMinutes: timerMinutes
@@ -1597,17 +1663,102 @@ document.getElementById('startOnlineBtn').addEventListener('click', async () => 
         const data = await getData();
         if (!data.matchmaking) data.matchmaking = [];
 
-        // Hapus user dari queue jika sudah ada
         data.matchmaking = data.matchmaking.filter(m => m.userId !== user.userId);
 
-        // Cari player lain di queue (bukan diri sendiri)
-        const opponent = data.matchmaking.find(m => m.userId !== user.userId);
+        // Cari player lain di queue dengan status 'waiting'
+        const opponent = data.matchmaking.find(m => m.userId !== user.userId && m.status === 'waiting');
 
         if (opponent) {
-            // HAPUS OPPONENT DARI QUEUE
-            data.matchmaking = data.matchmaking.filter(m => m.userId !== opponent.userId);
+            // Lock kedua player
+            const userInQueue = data.matchmaking.find(m => m.userId === user.userId);
+            const opponentInQueue = data.matchmaking.find(m => m.userId === opponent.userId);
+            
+            if (userInQueue) userInQueue.status = 'matched';
+            if (opponentInQueue) opponentInQueue.status = 'matched';
+            
             await updateData(data);
 
+            // Tampilkan popup konfirmasi
+            showMatchConfirmation(user, opponent, timerEnabled, timerMinutes);
+
+        } else {
+            // Masuk queue dengan status 'waiting'
+            data.matchmaking.push({
+                userId: user.userId,
+                username: user.username,
+                timerEnabled: timerEnabled,
+                timerMinutes: timerMinutes,
+                joinedAt: Date.now(),
+                status: 'waiting'
+            });
+            await updateData(data);
+
+            isSearching = true;
+            document.getElementById('startOnlineBtn').innerHTML = '<i class="fas fa-stop"></i> Batal Cari';
+            document.getElementById('startOnlineBtn').className = 'btn-online-action orange';
+            document.getElementById('searchStatus').style.display = 'block';
+            document.getElementById('searchStatus').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mencari pemain...';
+            document.getElementById('cancelSearchBtn').style.display = 'inline-block';
+
+            startMatchmakingPolling();
+        }
+
+    } catch (error) {
+        console.error('Error matchmaking:', error);
+        showToast('❌ Gagal mencari player', 'error');
+    }
+});
+
+// ============================================================
+// ==================== SHOW MATCH CONFIRMATION ================
+// ============================================================
+function showMatchConfirmation(user, opponent, timerEnabled, timerMinutes) {
+    const overlay = document.createElement('div');
+    overlay.className = 'match-confirm-overlay';
+    
+    const box = document.createElement('div');
+    box.className = 'match-confirm-box';
+    
+    box.innerHTML = `
+        <div class="icon">🎮</div>
+        <h2>Lawan Ditemukan!</h2>
+        <p class="sub"><strong>${opponent.username}</strong> siap bermain dengan Anda</p>
+        <p class="detail">
+            ⏱️ ${timerEnabled ? timerMinutes + ' menit' : 'Tanpa Timer'} · 
+            ${Math.random() < 0.5 ? 'Anda Putih' : 'Anda Hitam'}
+        </p>
+        <div class="btn-group">
+            <button class="btn-confirm" id="confirmMatchBtn">✅ Gabung</button>
+            <button class="btn-cancel" id="cancelMatchBtn">❌ Batal</button>
+        </div>
+        <p class="timeout-text">Jika tidak merespon dalam 10 detik, akan dibatalkan otomatis</p>
+    `;
+    
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+    
+    let confirmed = false;
+    let timeoutId = null;
+    
+    async function joinMatch() {
+        if (confirmed) return;
+        confirmed = true;
+        if (timeoutId) clearTimeout(timeoutId);
+        
+        try {
+            const data = await getData();
+            const opponentInQueue = data.matchmaking?.find(m => m.userId === opponent.userId);
+            if (!opponentInQueue || opponentInQueue.status !== 'matched') {
+                showToast('❌ Opponent sudah tidak tersedia', 'error');
+                overlay.remove();
+                cancelSearch();
+                return;
+            }
+            
+            data.matchmaking = data.matchmaking.filter(m => 
+                m.userId !== user.userId && m.userId !== opponent.userId
+            );
+            
             const roomId = generateRoomId();
             const userIsWhite = Math.random() < 0.5;
             
@@ -1648,61 +1799,73 @@ document.getElementById('startOnlineBtn').addEventListener('click', async () => 
                 isHost: isHost
             }));
             
-            showToast(`🎮 Dapat lawan! ${isHost ? 'Anda Putih' : 'Anda Hitam'}`, 'success');
-            
-            // Redirect ke arena
+            overlay.remove();
+            showToast(`🎮 Bergabung ke room! ${isHost ? 'Anda Putih' : 'Anda Hitam'}`, 'success');
             window.location.href = 'arena-online.html';
-
-        } else {
-            // Tidak ada player, masuk ke queue
-            data.matchmaking.push({
-                userId: user.userId,
-                username: user.username,
-                timerEnabled: timerEnabled,
-                timerMinutes: timerMinutes,
-                joinedAt: Date.now()
-            });
-            await updateData(data);
-
-            isSearching = true;
-            document.getElementById('startOnlineBtn').innerHTML = '<i class="fas fa-stop"></i> Batal Cari';
-            document.getElementById('startOnlineBtn').className = 'btn-online-action orange';
-            document.getElementById('searchStatus').style.display = 'block';
-            document.getElementById('searchStatus').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mencari pemain...';
-            document.getElementById('cancelSearchBtn').style.display = 'inline-block';
-
-            startMatchmakingPolling();
+            
+        } catch (error) {
+            console.error('Error joining match:', error);
+            showToast('❌ Gagal bergabung', 'error');
+            overlay.remove();
+            cancelSearch();
         }
-
-    } catch (error) {
-        console.error('Error matchmaking:', error);
-        showToast('❌ Gagal mencari player', 'error');
     }
-});
-
-function createEmptyBoard() {
-    const b = Array(8).fill().map(() => Array(8).fill(null));
-    const back = ['r','n','b','q','k','b','n','r'];
-    for (let c=0; c<8; c++) {
-        b[0][c] = { type: back[c], color: 'b' };
-        b[1][c] = { type: 'p', color: 'b' };
-        b[6][c] = { type: 'p', color: 'w' };
-        b[7][c] = { type: back[c], color: 'w' };
+    
+    async function cancelMatch() {
+        if (confirmed) return;
+        confirmed = true;
+        if (timeoutId) clearTimeout(timeoutId);
+        
+        try {
+            const data = await getData();
+            if (data.matchmaking) {
+                data.matchmaking = data.matchmaking.filter(m => 
+                    m.userId !== user.userId && m.userId !== opponent.userId
+                );
+                await updateData(data);
+            }
+        } catch (e) {}
+        
+        overlay.remove();
+        showToast('❌ Match dibatalkan', 'info');
+        cancelSearch();
     }
-    return b;
+    
+    document.getElementById('confirmMatchBtn').addEventListener('click', joinMatch);
+    document.getElementById('cancelMatchBtn').addEventListener('click', cancelMatch);
+    
+    timeoutId = setTimeout(() => {
+        if (!confirmed) {
+            confirmed = true;
+            overlay.remove();
+            showToast('⏰ Waktu habis, match dibatalkan', 'info');
+            (async () => {
+                try {
+                    const data = await getData();
+                    if (data.matchmaking) {
+                        data.matchmaking = data.matchmaking.filter(m => 
+                            m.userId !== user.userId && m.userId !== opponent.userId
+                        );
+                        await updateData(data);
+                    }
+                } catch (e) {}
+                cancelSearch();
+            })();
+        }
+    }, 10000);
 }
 
-let matchmakingPolling = null;
-let isRedirecting = false;
-
+// ============================================================
+// ==================== MATCHMAKING POLLING ====================
+// ============================================================
 function startMatchmakingPolling() {
     if (matchmakingPolling) clearInterval(matchmakingPolling);
     isRedirecting = false;
+    matchFound = false;
     
     matchmakingPolling = setInterval(async () => {
         try {
-            // Cegah multiple redirect
-            if (isRedirecting) return;
+            if (isRedirecting || matchFound) return;
             
             const user = getUserSession();
             if (!user) { 
@@ -1712,87 +1875,53 @@ function startMatchmakingPolling() {
 
             const data = await getData();
             
-            // Cek apakah user masih di queue
-            const inQueue = data.matchmaking?.find(m => m.userId === user.userId);
+            const inQueue = data.matchmaking?.find(m => m.userId === user.userId && m.status === 'waiting');
             if (!inQueue) {
-                cancelSearch();
+                const matched = data.matchmaking?.find(m => m.userId === user.userId && m.status === 'matched');
+                if (matched) {
+                    const opponent = data.matchmaking?.find(m => m.userId !== user.userId && m.status === 'matched');
+                    if (opponent) {
+                        matchFound = true;
+                        isRedirecting = true;
+                        cancelSearch();
+                        const timerEnabled = document.getElementById('onlineTimerToggle').checked;
+                        const timerMinutes = parseInt(document.getElementById('onlineTimerMinutes').value) || 5;
+                        showMatchConfirmation(user, opponent, timerEnabled, timerMinutes);
+                    }
+                } else {
+                    cancelSearch();
+                }
                 return;
             }
 
-            // Cari opponent (bukan diri sendiri)
-            const opponent = data.matchmaking.find(m => m.userId !== user.userId);
+            const opponent = data.matchmaking.find(m => m.userId !== user.userId && m.status === 'waiting');
             
             if (opponent) {
+                matchFound = true;
                 isRedirecting = true;
                 
-                // Hapus kedua player dari queue
-                data.matchmaking = data.matchmaking.filter(m => 
-                    m.userId !== user.userId && m.userId !== opponent.userId
-                );
+                const userInQueue = data.matchmaking.find(m => m.userId === user.userId);
+                const opponentInQueue = data.matchmaking.find(m => m.userId === opponent.userId);
+                if (userInQueue) userInQueue.status = 'matched';
+                if (opponentInQueue) opponentInQueue.status = 'matched';
                 
+                await updateData(data);
+                cancelSearch();
                 const timerEnabled = document.getElementById('onlineTimerToggle').checked;
                 const timerMinutes = parseInt(document.getElementById('onlineTimerMinutes').value) || 5;
-                
-                const roomId = generateRoomId();
-                const userIsWhite = Math.random() < 0.5;
-                
-                const room = {
-                    roomId: roomId,
-                    hostId: userIsWhite ? user.userId : opponent.userId,
-                    hostName: userIsWhite ? user.username : opponent.username,
-                    player2Id: userIsWhite ? opponent.userId : user.userId,
-                    player2Name: userIsWhite ? opponent.username : user.username,
-                    status: 'playing',
-                    board: createEmptyBoard(),
-                    currentTurn: 'w',
-                    castling: {
-                        w: { kingSide: true, queenSide: true },
-                        b: { kingSide: true, queenSide: true }
-                    },
-                    enPassantTarget: null,
-                    lastMove: null,
-                    createdAt: Date.now(),
-                    challenge: false,
-                    matchmaking: true,
-                    timerEnabled: timerEnabled,
-                    timerMinutes: timerMinutes,
-                    gameMoves: [],
-                    moveTimestamps: [],
-                    timeWhite: timerMinutes * 60,
-                    timeBlack: timerMinutes * 60,
-                    activeTimer: 'w'
-                };
-
-                if (!data.rooms) data.rooms = [];
-                data.rooms.push(room);
-                await updateData(data);
-
-                const isHost = user.userId === room.hostId;
-                localStorage.setItem('online_room', JSON.stringify({
-                    roomId: roomId,
-                    isHost: isHost
-                }));
-                
-                // Hentikan polling
-                cancelSearch();
-                
-                showToast(`🎮 Dapat lawan! ${isHost ? 'Anda Putih' : 'Anda Hitam'}`, 'success');
-                
-                // Redirect ke arena
-                setTimeout(() => {
-                    window.location.href = 'arena-online.html';
-                }, 500);
+                showMatchConfirmation(user, opponent, timerEnabled, timerMinutes);
             }
 
         } catch (error) {
             console.error('Polling error:', error);
         }
-    }, 2000); // Kurangi interval menjadi 2 detik agar lebih responsif
+    }, 2000);
 }
 
 function cancelSearch() {
     isSearching = false;
     isRedirecting = false;
+    matchFound = false;
     
     if (matchmakingPolling) {
         clearInterval(matchmakingPolling);
@@ -1805,19 +1934,14 @@ function cancelSearch() {
     document.getElementById('searchStatus').innerHTML = '';
     document.getElementById('cancelSearchBtn').style.display = 'none';
     
-    // Hapus user dari queue
     (async () => {
         try {
             const user = getUserSession();
             if (!user) return;
             const data = await getData();
             if (data.matchmaking) {
-                const before = data.matchmaking.length;
                 data.matchmaking = data.matchmaking.filter(m => m.userId !== user.userId);
-                if (before !== data.matchmaking.length) {
-                    await updateData(data);
-                    console.log('✅ Removed from matchmaking queue');
-                }
+                await updateData(data);
             }
         } catch (e) {
             console.error('Error cancel search:', e);
@@ -1826,6 +1950,18 @@ function cancelSearch() {
 }
 
 document.getElementById('cancelSearchBtn').addEventListener('click', cancelSearch);
+
+function createEmptyBoard() {
+    const b = Array(8).fill().map(() => Array(8).fill(null));
+    const back = ['r','n','b','q','k','b','n','r'];
+    for (let c=0; c<8; c++) {
+        b[0][c] = { type: back[c], color: 'b' };
+        b[1][c] = { type: 'p', color: 'b' };
+        b[6][c] = { type: 'p', color: 'w' };
+        b[7][c] = { type: back[c], color: 'w' };
+    }
+    return b;
+}
 
 // ============================================================
 // ==================== LOAD ONLINE FRIENDS ====================
@@ -1996,7 +2132,6 @@ async function acceptChallenge(roomId, senderId) {
             return;
         }
 
-        // Simpan timer settings
         localStorage.setItem('matchmaking_settings', JSON.stringify({
             timerEnabled: room.timerEnabled !== undefined ? room.timerEnabled : true,
             timerMinutes: room.timerMinutes || 5
@@ -2396,7 +2531,6 @@ async function loadHistory() {
         const data = await getData();
         const container = document.getElementById('historyGameList');
         
-        // Ambil riwayat dari user
         const currentUser = data.users.find(u => u.userId === user.userId);
         if (!currentUser) return;
 
@@ -2408,7 +2542,6 @@ async function loadHistory() {
         }
 
         container.innerHTML = '';
-        // Tampilkan dari yang terbaru
         history.reverse().forEach((game, index) => {
             const div = document.createElement('div');
             div.className = 'history-game-item';
@@ -2433,7 +2566,6 @@ async function loadHistory() {
             container.appendChild(div);
         });
 
-        // Simpan history untuk detail
         window._historyData = history;
 
     } catch (error) {
@@ -2452,7 +2584,6 @@ function showHistoryDetail(index) {
 
     const modal = document.getElementById('historyDetailModal');
     
-    // Set data
     document.getElementById('historyModalTitle').innerHTML = `<i class="fas fa-chess-queen"></i> Detail Permainan #${index + 1}`;
     
     const isWin = game.result === 'win';
@@ -2471,7 +2602,6 @@ function showHistoryDetail(index) {
     
     document.getElementById('detailDate').textContent = game.date || new Date(game.timestamp).toLocaleString();
     
-    // Analisis
     const analysis = game.analysis || {};
     document.getElementById('detailAccuracy').textContent = (analysis.accuracy || 0) + '%';
     document.getElementById('detailRating').textContent = analysis.rating || 'Pemula';
@@ -2480,7 +2610,6 @@ function showHistoryDetail(index) {
     document.getElementById('detailSpeed').textContent = analysis.avgSpeed ? analysis.avgSpeed.toFixed(1) + 's' : '--';
     document.getElementById('detailTimer').textContent = game.timer ? `${game.timer} menit` : 'Tanpa Timer';
 
-    // Move list
     const moveList = document.getElementById('detailMoveList');
     moveList.innerHTML = '';
     const moves = game.moves || [];
@@ -2507,9 +2636,6 @@ function showHistoryDetail(index) {
     modal.classList.add('show');
 }
 
-// ============================================================
-// ==================== CLOSE HISTORY MODAL ====================
-// ============================================================
 document.getElementById('closeHistoryModal').addEventListener('click', () => {
     document.getElementById('historyDetailModal').classList.remove('show');
 });
@@ -2614,7 +2740,6 @@ async function loadDashboard() {
             
             displayDashboard(currentUser);
             
-            // Load history jika ada
             if (currentUser.gameHistory) {
                 window._historyData = currentUser.gameHistory;
             }
