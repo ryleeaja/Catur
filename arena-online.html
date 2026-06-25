@@ -402,7 +402,6 @@
 
     <div class="controls-arena">
         <button class="btn-primary btn-danger" id="resignBtn"><i class="fas fa-flag"></i> Menyerah</button>
-        <button class="btn-primary" id="copyRoomBtn"><i class="fas fa-copy"></i> Salin ID Room</button>
     </div>
     <div class="footer">Bermain Online · Rokade, En Passant, Promosi · Refresh otomatis</div>
 </div>
@@ -465,7 +464,6 @@ async function getData() {
         });
         if (!response.ok) throw new Error('HTTP ' + response.status);
         const data = await response.json();
-        // HAPUS matchmaking & pendingMatches karena tidak digunakan
         return data.record || { users: [], rooms: [], gameHistory: [] };
     } catch (error) {
         console.error('❌ getData error:', error);
@@ -620,30 +618,11 @@ const promotionModal = document.getElementById('promotionModal');
 const promotionOptions = document.getElementById('promotionOptions');
 const resignBtn = document.getElementById('resignBtn');
 const backBtn = document.getElementById('backToDashboardBtn');
-const copyRoomBtn = document.getElementById('copyRoomBtn');
 const timerInfo = document.getElementById('timerInfo');
 const timeWhiteEl = document.getElementById('timeWhite');
 const timeBlackEl = document.getElementById('timeBlack');
 const timerWhiteEl = document.getElementById('timerWhite');
 const timerBlackEl = document.getElementById('timerBlack');
-
-// ============================================================
-// ==================== COPY ROOM ID ===========================
-// ============================================================
-copyRoomBtn.addEventListener('click', async () => {
-    try {
-        await navigator.clipboard.writeText(roomId);
-        showToast('✅ ID Room disalin!', 'success');
-    } catch (err) {
-        const input = document.createElement('input');
-        input.value = roomId;
-        document.body.appendChild(input);
-        input.select();
-        document.execCommand('copy');
-        document.body.removeChild(input);
-        showToast('✅ ID Room disalin!', 'success');
-    }
-});
 
 // ============================================================
 // ==================== FUNGSI CATUR ===========================
