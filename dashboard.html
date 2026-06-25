@@ -1365,27 +1365,103 @@ async function getData() {
         });
         if (!response.ok) throw new Error('Gagal mengambil data');
         const data = await response.json();
-        return data.record || { users: [], rooms: [], matchmaking: [], pendingMatches: [] };
+        // Pastikan data.record selalu memiliki struktur minimal
+        const record = data.record || {};
+        return {
+            users: record.users || [],
+            rooms: record.rooms || [],
+            matchmaking: record.matchmaking || [],
+            pendingMatches: record.pendingMatches || [],
+            gameHistory: record.gameHistory || []
+        };
     } catch (error) {
         console.error('Error getData:', error);
-        return { users: [], rooms: [], matchmaking: [], pendingMatches: [] };
+        // Return data default jika error
+        return { users: [], rooms: [], matchmaking: [], pendingMatches: [], gameHistory: [] };
     }
 }
 
 async function updateData(data) {
     try {
+        // VALIDASI: Pastikan data memiliki semua field yang diperlukan
+        const safeData = {
+            users: data.users || [],
+            rooms: data.rooms || [],
+            matchmaking: data.matchmaking || [],
+            pendingMatches: data.pendingMatches || [],
+            gameHistory: data.gameHistory || []
+        };
+        
+        // Backup data saat ini sebelum update (untuk rollback jika error)
+        let backupData = null;
+        try {
+            const current = await getData();
+            backupData = current;
+        } catch (e) {
+            console.warn('Gagal membuat backup:', e);
+        }
+        
         const response = await fetch(`${CONFIG.BASE_URL}/${CONFIG.BIN_ID}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
                 'X-Master-Key': CONFIG.API_KEY
             },
-            body: JSON.stringify(data)
+            body: JSON.stringify(safeData)
         });
-        if (!response.ok) throw new Error('Gagal menyimpan data');
+        
+        if (!response.ok) {
+            // Jika update gagal, coba restore backup
+            if (backupData) {
+                console.warn('Update gagal, mencoba restore backup...');
+                await fetch(`${CONFIG.BASE_URL}/${CONFIG.BIN_ID}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Master-Key': CONFIG.API_KEY
+                    },
+                    body: JSON.stringify(backupData)
+                });
+            }
+            throw new Error('Gagal menyimpan data');
+        }
         return await response.json();
     } catch (error) {
         console.error('Error updateData:', error);
+        throw error;
+    }
+}
+
+// ============================================================
+// ==================== MERGE DATA (AMAN) ======================
+// ============================================================
+async function safeUpdateData(updateFunction) {
+    try {
+        // Ambil data terbaru
+        const data = await getData();
+        
+        // Jalankan fungsi update pada data
+        const updatedData = await updateFunction(data);
+        
+        // Validasi hasil update
+        if (!updatedData || typeof updatedData !== 'object') {
+            throw new Error('Hasil update tidak valid');
+        }
+        
+        // Pastikan semua field ada
+        const safeData = {
+            users: updatedData.users || [],
+            rooms: updatedData.rooms || [],
+            matchmaking: updatedData.matchmaking || [],
+            pendingMatches: updatedData.pendingMatches || [],
+            gameHistory: updatedData.gameHistory || []
+        };
+        
+        // Simpan dengan validasi
+        return await updateData(safeData);
+    } catch (error) {
+        console.error('Error in safeUpdateData:', error);
+        showToast('❌ Gagal menyimpan data', 'error');
         throw error;
     }
 }
@@ -1573,10 +1649,6 @@ async function createChallengeRoom(targetUserId, targetUsername) {
     if (!user) return;
 
     try {
-        const data = await getData();
-        if (!data.rooms) data.rooms = [];
-
-        const roomId = generateRoomId();
         const timerEnabled = document.getElementById('onlineTimerToggle').checked;
         const timerMinutes = parseInt(document.getElementById('onlineTimerMinutes').value) || 5;
         
@@ -1586,6 +1658,7 @@ async function createChallengeRoom(targetUserId, targetUsername) {
         }));
         
         const userIsWhite = Math.random() < 0.5;
+        const roomId = generateRoomId();
         
         const room = {
             roomId: roomId,
@@ -1610,27 +1683,28 @@ async function createChallengeRoom(targetUserId, targetUsername) {
             activeTimer: 'w'
         };
 
-        data.rooms.push(room);
-        await updateData(data);
-
-        const targetUser = data.users.find(u => u.userId === targetUserId);
-        if (targetUser) {
-            if (!targetUser.challenges) targetUser.challenges = [];
-            targetUser.challenges = targetUser.challenges.filter(c => c.fromId !== user.userId);
-            targetUser.challenges.push({
-                roomId: roomId,
-                fromId: user.userId,
-                fromName: user.username,
-                timerEnabled: timerEnabled,
-                timerMinutes: timerMinutes,
-                createdAt: Date.now()
-            });
-            await updateData(data);
+        // Gunakan safeUpdateData
+        await safeUpdateData(async (data) => {
+            if (!data.rooms) data.rooms = [];
+            data.rooms.push(room);
             
-            if (targetUser.status === 'online') {
-                showToast(`✅ Tantangan dikirim ke ${targetUsername}!`, 'success');
+            const targetUser = data.users.find(u => u.userId === targetUserId);
+            if (targetUser) {
+                if (!targetUser.challenges) targetUser.challenges = [];
+                targetUser.challenges = targetUser.challenges.filter(c => c.fromId !== user.userId);
+                targetUser.challenges.push({
+                    roomId: roomId,
+                    fromId: user.userId,
+                    fromName: user.username,
+                    timerEnabled: timerEnabled,
+                    timerMinutes: timerMinutes,
+                    createdAt: Date.now()
+                });
             }
-        }
+            return data;
+        });
+        
+        showToast(`✅ Tantangan dikirim ke ${targetUsername}!`, 'success');
 
         localStorage.setItem('online_room', JSON.stringify({
             roomId: roomId,
@@ -1745,8 +1819,10 @@ async function checkPendingMatch() {
                 }
             } else {
                 // Remove expired atau completed match
-                data.pendingMatches = data.pendingMatches.filter(m => m.matchId !== pending.matchId);
-                await updateData(data);
+                await safeUpdateData(async (data) => {
+                    data.pendingMatches = data.pendingMatches.filter(m => m.matchId !== pending.matchId);
+                    return data;
+                });
                 hideMatchConfirmation();
             }
         }
@@ -1829,11 +1905,13 @@ async function cancelMatch(matchId) {
         const user = getUserSession();
         if (!user) return;
         
-        const data = await getData();
-        if (data.pendingMatches) {
-            data.pendingMatches = data.pendingMatches.filter(m => m.matchId !== matchId);
-            await updateData(data);
-        }
+        await safeUpdateData(async (data) => {
+            if (data.pendingMatches) {
+                data.pendingMatches = data.pendingMatches.filter(m => m.matchId !== matchId);
+            }
+            return data;
+        });
+        
         hideMatchConfirmation();
         showToast('❌ Pencarian dibatalkan', 'info');
         cancelSearch();
@@ -1885,13 +1963,12 @@ async function createRoomFromMatch(pending) {
             activeTimer: 'w'
         };
         
-        if (!data.rooms) data.rooms = [];
-        data.rooms.push(room);
-        
-        // Hapus pending match
-        data.pendingMatches = data.pendingMatches.filter(m => m.matchId !== pending.matchId);
-        
-        await updateData(data);
+        await safeUpdateData(async (data) => {
+            if (!data.rooms) data.rooms = [];
+            data.rooms.push(room);
+            data.pendingMatches = data.pendingMatches.filter(m => m.matchId !== pending.matchId);
+            return data;
+        });
         
         // Save room info untuk user ini
         const userIsHost = room.hostId === user.userId;
@@ -1944,7 +2021,18 @@ document.getElementById('matchConfirmBtn').addEventListener('click', async () =>
         }
         pending.status = 'confirming';
         
-        await updateData(data);
+        await safeUpdateData(async (data) => {
+            const match = data.pendingMatches?.find(m => m.matchId === pendingMatchId);
+            if (match) {
+                if (isPlayer1) {
+                    match.player1Confirmed = true;
+                } else {
+                    match.player2Confirmed = true;
+                }
+                match.status = 'confirming';
+            }
+            return data;
+        });
         
         // Cek apakah kedua sudah konfirmasi
         if (pending.player1Confirmed && pending.player2Confirmed) {
@@ -1997,21 +2085,20 @@ function startMatchmaking() {
     // Add user to matchmaking queue
     (async () => {
         try {
-            const data = await getData();
-            if (!data.matchmaking) data.matchmaking = [];
-            
-            data.matchmaking = data.matchmaking.filter(m => m.userId !== user.userId);
-            
-            data.matchmaking.push({
-                userId: user.userId,
-                username: user.username,
-                elo: user.elo || 100,
-                timerEnabled: timerEnabled,
-                timerMinutes: timerMinutes,
-                joinedAt: Date.now()
+            await safeUpdateData(async (data) => {
+                if (!data.matchmaking) data.matchmaking = [];
+                data.matchmaking = data.matchmaking.filter(m => m.userId !== user.userId);
+                data.matchmaking.push({
+                    userId: user.userId,
+                    username: user.username,
+                    elo: user.elo || 100,
+                    timerEnabled: timerEnabled,
+                    timerMinutes: timerMinutes,
+                    joinedAt: Date.now()
+                });
+                return data;
             });
             
-            await updateData(data);
             startMatchmakingPolling();
             
         } catch (error) {
@@ -2045,44 +2132,47 @@ function startMatchmakingPolling() {
             if (opponent) {
                 const opponentUser = data.users.find(u => u.userId === opponent.userId);
                 if (!opponentUser) {
-                    data.matchmaking = data.matchmaking.filter(m => m.userId !== opponent.userId);
-                    await updateData(data);
+                    await safeUpdateData(async (data) => {
+                        data.matchmaking = data.matchmaking.filter(m => m.userId !== opponent.userId);
+                        return data;
+                    });
                     return;
                 }
-                
-                // Hapus kedua player dari antrian
-                data.matchmaking = data.matchmaking.filter(m => m.userId !== user.userId && m.userId !== opponent.userId);
                 
                 // Buat pending match invitation untuk KEDUA player
                 const matchId = generateRoomId();
                 const userIsWhite = Math.random() < 0.5;
                 const timerMinutes = inQueue.timerMinutes || 5;
                 
-                if (!data.pendingMatches) data.pendingMatches = [];
-                
-                // Hapus pending match lama untuk player ini
-                data.pendingMatches = data.pendingMatches.filter(m => 
-                    m.player1Id !== user.userId && m.player2Id !== user.userId &&
-                    m.player1Id !== opponent.userId && m.player2Id !== opponent.userId
-                );
-                
-                data.pendingMatches.push({
-                    matchId: matchId,
-                    player1Id: user.userId,
-                    player1Name: user.username,
-                    player1IsWhite: userIsWhite,
-                    player1Confirmed: false,
-                    player2Id: opponent.userId,
-                    player2Name: opponent.username,
-                    player2Confirmed: false,
-                    timerMinutes: timerMinutes,
-                    status: 'pending',
-                    createdAt: Date.now()
+                await safeUpdateData(async (data) => {
+                    // Hapus kedua player dari antrian
+                    data.matchmaking = data.matchmaking.filter(m => m.userId !== user.userId && m.userId !== opponent.userId);
+                    
+                    if (!data.pendingMatches) data.pendingMatches = [];
+                    
+                    // Hapus pending match lama untuk player ini
+                    data.pendingMatches = data.pendingMatches.filter(m => 
+                        m.player1Id !== user.userId && m.player2Id !== user.userId &&
+                        m.player1Id !== opponent.userId && m.player2Id !== opponent.userId
+                    );
+                    
+                    data.pendingMatches.push({
+                        matchId: matchId,
+                        player1Id: user.userId,
+                        player1Name: user.username,
+                        player1IsWhite: userIsWhite,
+                        player1Confirmed: false,
+                        player2Id: opponent.userId,
+                        player2Name: opponent.username,
+                        player2Confirmed: false,
+                        timerMinutes: timerMinutes,
+                        status: 'pending',
+                        createdAt: Date.now()
+                    });
+                    return data;
                 });
                 
-                await updateData(data);
-                
-                // Hentikan polling - sekarang user akan mendapatkan popup dari checkPendingMatch
+                // Hentikan polling
                 if (matchmakingPolling) {
                     clearInterval(matchmakingPolling);
                     matchmakingPolling = null;
@@ -2091,7 +2181,7 @@ function startMatchmakingPolling() {
                 // Update status
                 document.getElementById('searchStatus').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menunggu konfirmasi dari lawan...';
                 
-                // Popup akan muncul via checkPendingMatch() yang jalan setiap 3 detik
+                // Popup akan muncul via checkPendingMatch()
                 await checkPendingMatch();
             }
             
@@ -2118,11 +2208,12 @@ function cancelSearch() {
         try {
             const user = getUserSession();
             if (!user) return;
-            const data = await getData();
-            if (data.matchmaking) {
-                data.matchmaking = data.matchmaking.filter(m => m.userId !== user.userId);
-                await updateData(data);
-            }
+            await safeUpdateData(async (data) => {
+                if (data.matchmaking) {
+                    data.matchmaking = data.matchmaking.filter(m => m.userId !== user.userId);
+                }
+                return data;
+            });
         } catch (e) {}
     })();
 }
@@ -2220,7 +2311,11 @@ async function loadChallenges() {
 
         if (!currentUser.challenges) {
             currentUser.challenges = [];
-            await updateData(data);
+            await safeUpdateData(async (data) => {
+                const userData = data.users.find(u => u.userId === user.userId);
+                if (userData) userData.challenges = [];
+                return data;
+            });
         }
 
         const challenges = currentUser.challenges || [];
@@ -2234,8 +2329,11 @@ async function loadChallenges() {
         }
         
         if (validChallenges.length !== challenges.length) {
-            currentUser.challenges = validChallenges;
-            await updateData(data);
+            await safeUpdateData(async (data) => {
+                const userData = data.users.find(u => u.userId === user.userId);
+                if (userData) userData.challenges = validChallenges;
+                return data;
+            });
         }
         
         const badge = document.getElementById('challengeBadge');
@@ -2316,10 +2414,13 @@ async function acceptChallenge(roomId, senderId) {
 
         if (room.status !== 'waiting') {
             showToast('❌ Room sudah tidak tersedia', 'error');
-            if (currentUser.challenges) {
-                currentUser.challenges = currentUser.challenges.filter(c => c.roomId !== roomId);
-                await updateData(data);
-            }
+            await safeUpdateData(async (data) => {
+                const userData = data.users.find(u => u.userId === user.userId);
+                if (userData && userData.challenges) {
+                    userData.challenges = userData.challenges.filter(c => c.roomId !== roomId);
+                }
+                return data;
+            });
             loadChallenges();
             return;
         }
@@ -2331,25 +2432,30 @@ async function acceptChallenge(roomId, senderId) {
             timerMinutes: room.timerMinutes || 5
         }));
 
-        if (room.player2Id === user.userId || room.hostId === user.userId) {
-            room.status = 'playing';
-            room.board = createEmptyBoard();
-            room.timeWhite = (room.timerMinutes || 5) * 60;
-            room.timeBlack = (room.timerMinutes || 5) * 60;
-        } else {
-            room.player2Id = user.userId;
-            room.player2Name = user.username;
-            room.status = 'playing';
-            room.board = createEmptyBoard();
-            room.timeWhite = (room.timerMinutes || 5) * 60;
-            room.timeBlack = (room.timerMinutes || 5) * 60;
-        }
-
-        if (currentUser.challenges) {
-            currentUser.challenges = currentUser.challenges.filter(c => c.roomId !== roomId);
-        }
-
-        await updateData(data);
+        await safeUpdateData(async (data) => {
+            const roomData = data.rooms?.find(r => r.roomId === roomId);
+            if (roomData) {
+                if (roomData.player2Id === user.userId || roomData.hostId === user.userId) {
+                    roomData.status = 'playing';
+                    roomData.board = createEmptyBoard();
+                    roomData.timeWhite = (roomData.timerMinutes || 5) * 60;
+                    roomData.timeBlack = (roomData.timerMinutes || 5) * 60;
+                } else {
+                    roomData.player2Id = user.userId;
+                    roomData.player2Name = user.username;
+                    roomData.status = 'playing';
+                    roomData.board = createEmptyBoard();
+                    roomData.timeWhite = (roomData.timerMinutes || 5) * 60;
+                    roomData.timeBlack = (roomData.timerMinutes || 5) * 60;
+                }
+            }
+            
+            const userData = data.users.find(u => u.userId === user.userId);
+            if (userData && userData.challenges) {
+                userData.challenges = userData.challenges.filter(c => c.roomId !== roomId);
+            }
+            return data;
+        });
 
         showToast(`✅ Bergabung ke room!`, 'success');
 
@@ -2374,12 +2480,13 @@ async function rejectChallenge(roomId) {
     if (!user) return;
 
     try {
-        const data = await getData();
-        const currentUser = data.users.find(u => u.userId === user.userId);
-        if (currentUser && currentUser.challenges) {
-            currentUser.challenges = currentUser.challenges.filter(c => c.roomId !== roomId);
-            await updateData(data);
-        }
+        await safeUpdateData(async (data) => {
+            const userData = data.users.find(u => u.userId === user.userId);
+            if (userData && userData.challenges) {
+                userData.challenges = userData.challenges.filter(c => c.roomId !== roomId);
+            }
+            return data;
+        });
         showToast('❌ Tantangan ditolak', 'info');
         loadChallenges();
 
@@ -2495,19 +2602,20 @@ async function acceptFriend(senderId) {
     if (!user) return;
 
     try {
-        const data = await getData();
-        const currentUser = data.users.find(u => u.userId === user.userId);
-        const sender = data.users.find(u => u.userId === senderId);
-        if (!currentUser || !sender) return;
+        await safeUpdateData(async (data) => {
+            const currentUser = data.users.find(u => u.userId === user.userId);
+            const sender = data.users.find(u => u.userId === senderId);
+            if (!currentUser || !sender) return data;
 
-        currentUser.friendRequests = currentUser.friendRequests.filter(id => id !== senderId);
-        if (!currentUser.friends) currentUser.friends = [];
-        if (!currentUser.friends.includes(senderId)) currentUser.friends.push(senderId);
-        if (!sender.friends) sender.friends = [];
-        if (!sender.friends.includes(currentUser.userId)) sender.friends.push(currentUser.userId);
-        if (sender.sentRequests) sender.sentRequests = sender.sentRequests.filter(id => id !== currentUser.userId);
+            currentUser.friendRequests = currentUser.friendRequests.filter(id => id !== senderId);
+            if (!currentUser.friends) currentUser.friends = [];
+            if (!currentUser.friends.includes(senderId)) currentUser.friends.push(senderId);
+            if (!sender.friends) sender.friends = [];
+            if (!sender.friends.includes(currentUser.userId)) sender.friends.push(currentUser.userId);
+            if (sender.sentRequests) sender.sentRequests = sender.sentRequests.filter(id => id !== currentUser.userId);
 
-        await updateData(data);
+            return data;
+        });
         showToast(`✅ ${sender.username} sekarang menjadi temanmu!`, 'success');
         loadFriendsData();
 
@@ -2522,12 +2630,13 @@ async function rejectFriend(senderId) {
     if (!user) return;
 
     try {
-        const data = await getData();
-        const currentUser = data.users.find(u => u.userId === user.userId);
-        if (!currentUser) return;
-
-        currentUser.friendRequests = currentUser.friendRequests.filter(id => id !== senderId);
-        await updateData(data);
+        await safeUpdateData(async (data) => {
+            const currentUser = data.users.find(u => u.userId === user.userId);
+            if (currentUser) {
+                currentUser.friendRequests = currentUser.friendRequests.filter(id => id !== senderId);
+            }
+            return data;
+        });
         showToast('❌ Permintaan ditolak', 'info');
         loadFriendsData();
 
@@ -2543,16 +2652,16 @@ async function removeFriend(friendId) {
     if (!user) return;
 
     try {
-        const data = await getData();
-        const currentUser = data.users.find(u => u.userId === user.userId);
-        const friend = data.users.find(u => u.userId === friendId);
-        if (!currentUser || !friend) return;
-
-        currentUser.friends = currentUser.friends.filter(id => id !== friendId);
-        friend.friends = friend.friends.filter(id => id !== currentUser.userId);
-
-        await updateData(data);
-        showToast(`🗑️ ${friend.username} dihapus dari teman`, 'info');
+        await safeUpdateData(async (data) => {
+            const currentUser = data.users.find(u => u.userId === user.userId);
+            const friend = data.users.find(u => u.userId === friendId);
+            if (currentUser && friend) {
+                currentUser.friends = currentUser.friends.filter(id => id !== friendId);
+                friend.friends = friend.friends.filter(id => id !== currentUser.userId);
+            }
+            return data;
+        });
+        showToast(`🗑️ Teman dihapus`, 'info');
         loadFriendsData();
 
     } catch (error) {
@@ -2648,22 +2757,22 @@ async function sendFriendRequest(targetId) {
     if (!user) return;
 
     try {
-        const data = await getData();
-        const currentUser = data.users.find(u => u.userId === user.userId);
-        const target = data.users.find(u => u.userId === targetId);
-        if (!currentUser || !target) return;
-
-        if (!target.friendRequests) target.friendRequests = [];
-        if (!target.friendRequests.includes(currentUser.userId)) {
-            target.friendRequests.push(currentUser.userId);
-        }
-        if (!currentUser.sentRequests) currentUser.sentRequests = [];
-        if (!currentUser.sentRequests.includes(targetId)) {
-            currentUser.sentRequests.push(targetId);
-        }
-
-        await updateData(data);
-        showToast(`✅ Permintaan teman dikirim ke ${target.username}!`, 'success');
+        await safeUpdateData(async (data) => {
+            const currentUser = data.users.find(u => u.userId === user.userId);
+            const target = data.users.find(u => u.userId === targetId);
+            if (currentUser && target) {
+                if (!target.friendRequests) target.friendRequests = [];
+                if (!target.friendRequests.includes(currentUser.userId)) {
+                    target.friendRequests.push(currentUser.userId);
+                }
+                if (!currentUser.sentRequests) currentUser.sentRequests = [];
+                if (!currentUser.sentRequests.includes(targetId)) {
+                    currentUser.sentRequests.push(targetId);
+                }
+            }
+            return data;
+        });
+        showToast(`✅ Permintaan teman dikirim!`, 'success');
         document.getElementById('searchResult').classList.remove('show');
         document.getElementById('searchFriendInput').value = '';
         loadFriendsData();
@@ -2906,8 +3015,11 @@ async function loadDashboard() {
         const currentUser = data.users.find(u => u.userId === user.userId);
         if (currentUser) {
             if (currentUser.status !== 'online') {
-                currentUser.status = 'online';
-                await updateData(data);
+                await safeUpdateData(async (data) => {
+                    const userData = data.users.find(u => u.userId === user.userId);
+                    if (userData) userData.status = 'online';
+                    return data;
+                });
             }
             
             localStorage.setItem('chess_user', JSON.stringify({
@@ -2942,12 +3054,13 @@ document.getElementById('logoutBtn').addEventListener('click', async () => {
     const user = getUserSession();
     if (user) {
         try {
-            const data = await getData();
-            const currentUser = data.users.find(u => u.userId === user.userId);
-            if (currentUser) {
-                currentUser.status = 'offline';
-                await updateData(data);
-            }
+            await safeUpdateData(async (data) => {
+                const currentUser = data.users.find(u => u.userId === user.userId);
+                if (currentUser) {
+                    currentUser.status = 'offline';
+                }
+                return data;
+            });
         } catch (e) {}
     }
     localStorage.removeItem('chess_user');
