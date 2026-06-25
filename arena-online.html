@@ -1225,7 +1225,7 @@ async function saveGameHistory(gameData) {
         currentUser.gameHistory.push(gameData);
         
         await updateData(data);
-        console.log('✅ Game history saved');
+        console.log('✅ Game history saved for:', currentUser.username);
     } catch (error) {
         console.error('❌ Error saving history:', error);
     }
@@ -1376,7 +1376,7 @@ async function loadGameState() {
 }
 
 // ============================================================
-// ==================== HANDLE GAME END ========================
+// ==================== HANDLE GAME END - FIXED ================
 // ============================================================
 async function handleGameEnd(isWinner, isStalemate, fromLoad = false) {
     console.log('📊 handleGameEnd:', { isWinner, isStalemate, fromLoad });
@@ -1440,6 +1440,7 @@ async function handleGameEnd(isWinner, isStalemate, fromLoad = false) {
     let loserReward = 0;
     let historyResult = '';
     let historyEloChange = 0;
+    let historyAnalysis = null;
     
     if (!isStalemate && opponent) {
         const myElo = currentUser.elo || 100;
@@ -1489,9 +1490,11 @@ async function handleGameEnd(isWinner, isStalemate, fromLoad = false) {
         }
         opponent.gamesPlayed = (opponent.gamesPlayed || 0) + 1;
         
+        // Buat analisis untuk user dan opponent
         const userAnalysis = analyzeGame(isWinner ? 'user' : 'opponent');
         const opponentAnalysis = analyzeGame(isWinner ? 'opponent' : 'user');
         
+        // Tentukan siapa pemenang dan pecundang
         if (isWinner) {
             winnerAnalysis = userAnalysis;
             loserAnalysis = opponentAnalysis;
@@ -1500,14 +1503,17 @@ async function handleGameEnd(isWinner, isStalemate, fromLoad = false) {
             loserAnalysis = userAnalysis;
         }
         
+        // SIMPAN STATS UNTUK USER SAAT INI
         if (isWinner) {
             currentUser.totalAccuracy = (currentUser.totalAccuracy || 0) + (userAnalysis.accuracy || 0);
             currentUser.totalSpeed = (currentUser.totalSpeed || 0) + (userAnalysis.avgSpeed || 0);
             currentUser.gamesWithStats = (currentUser.gamesWithStats || 0) + 1;
+            historyAnalysis = userAnalysis;
         } else {
             currentUser.totalAccuracy = (currentUser.totalAccuracy || 0) + (userAnalysis.accuracy || 0);
             currentUser.totalSpeed = (currentUser.totalSpeed || 0) + (userAnalysis.avgSpeed || 0);
             currentUser.gamesWithStats = (currentUser.gamesWithStats || 0) + 1;
+            historyAnalysis = userAnalysis;
         }
         
         room.status = 'finished';
@@ -1526,7 +1532,7 @@ async function handleGameEnd(isWinner, isStalemate, fromLoad = false) {
         saveUserSession(currentUser);
         console.log('✅ Stats updated');
         
-        // Save history for current user
+        // ===== SAVE HISTORY UNTUK USER SAAT INI =====
         await saveGameHistory({
             result: historyResult,
             opponent: opponent.username,
@@ -1534,10 +1540,49 @@ async function handleGameEnd(isWinner, isStalemate, fromLoad = false) {
             date: new Date().toLocaleString(),
             timestamp: Date.now(),
             moves: gameMoves,
-            analysis: userAnalysis,
+            analysis: historyAnalysis || userAnalysis,
             timer: timerMinutes,
             opponentId: opponent.userId
         });
+        console.log(`✅ History saved for ${currentUser.username}: ${historyResult}`);
+        
+        // ===== SAVE HISTORY UNTUK OPPONENT =====
+        const opponentHistoryResult = isWinner ? 'lose' : 'win';
+        const opponentHistoryEloChange = isWinner ? loserReward : winnerReward;
+        const opponentHistoryAnalysis = isWinner ? loserAnalysis : winnerAnalysis;
+        
+        // Ambil data terbaru untuk opponent
+        const updatedData = await getData();
+        const updatedOpponent = updatedData.users.find(u => u.userId === opponent.userId);
+        if (updatedOpponent) {
+            // Update stats opponent
+            if (isWinner) {
+                updatedOpponent.totalAccuracy = (updatedOpponent.totalAccuracy || 0) + (opponentAnalysis.accuracy || 0);
+                updatedOpponent.totalSpeed = (updatedOpponent.totalSpeed || 0) + (opponentAnalysis.avgSpeed || 0);
+                updatedOpponent.gamesWithStats = (updatedOpponent.gamesWithStats || 0) + 1;
+            } else {
+                updatedOpponent.totalAccuracy = (updatedOpponent.totalAccuracy || 0) + (opponentAnalysis.accuracy || 0);
+                updatedOpponent.totalSpeed = (updatedOpponent.totalSpeed || 0) + (opponentAnalysis.avgSpeed || 0);
+                updatedOpponent.gamesWithStats = (updatedOpponent.gamesWithStats || 0) + 1;
+            }
+            
+            // Tambahkan history untuk opponent
+            if (!updatedOpponent.gameHistory) updatedOpponent.gameHistory = [];
+            updatedOpponent.gameHistory.push({
+                result: opponentHistoryResult,
+                opponent: currentUser.username,
+                eloChange: opponentHistoryEloChange,
+                date: new Date().toLocaleString(),
+                timestamp: Date.now(),
+                moves: gameMoves,
+                analysis: opponentHistoryAnalysis || opponentAnalysis,
+                timer: timerMinutes,
+                opponentId: currentUser.userId
+            });
+            
+            await updateData(updatedData);
+            console.log(`✅ History saved for ${opponent.username}: ${opponentHistoryResult}`);
+        }
         
         const currentAnalysis = isWinner ? winnerAnalysis : loserAnalysis;
         const currentReward = isWinner ? winnerReward : loserReward;
@@ -1545,6 +1590,7 @@ async function handleGameEnd(isWinner, isStalemate, fromLoad = false) {
         showAnalysisModal(isWinner, isStalemate, currentAnalysis);
         
     } else {
+        // STALEMATE
         rewardAmount = 0;
         const analysis = analyzeGame('draw');
         room.status = 'finished';
@@ -1558,7 +1604,7 @@ async function handleGameEnd(isWinner, isStalemate, fromLoad = false) {
         };
         await updateData(data);
         
-        // Save history for draw
+        // Save history untuk draw - user
         await saveGameHistory({
             result: 'draw',
             opponent: opponent ? opponent.username : 'Unknown',
@@ -1570,6 +1616,28 @@ async function handleGameEnd(isWinner, isStalemate, fromLoad = false) {
             timer: timerMinutes,
             opponentId: opponent ? opponent.userId : null
         });
+        
+        // Save history untuk draw - opponent
+        if (opponent) {
+            const updatedData = await getData();
+            const updatedOpponent = updatedData.users.find(u => u.userId === opponent.userId);
+            if (updatedOpponent) {
+                if (!updatedOpponent.gameHistory) updatedOpponent.gameHistory = [];
+                updatedOpponent.gameHistory.push({
+                    result: 'draw',
+                    opponent: currentUser.username,
+                    eloChange: 0,
+                    date: new Date().toLocaleString(),
+                    timestamp: Date.now(),
+                    moves: gameMoves,
+                    analysis: analysis,
+                    timer: timerMinutes,
+                    opponentId: currentUser.userId
+                });
+                await updateData(updatedData);
+                console.log(`✅ Draw history saved for opponent: ${opponent.username}`);
+            }
+        }
         
         showAnalysisModal(false, true, analysis);
     }
@@ -1645,7 +1713,7 @@ function showAnalysisModal(isWinner, isStalemate, analysis) {
 }
 
 // ============================================================
-// ==================== RESIGN BUTTON ==========================
+// ==================== RESIGN BUTTON - FIXED ==================
 // ============================================================
 resignBtn.addEventListener('click', async function() {
     console.log('🏳️ Resign clicked');
@@ -1685,39 +1753,55 @@ resignBtn.addEventListener('click', async function() {
             return;
         }
 
+        console.log(`👤 ${currentUser.username} menyerah kepada ${opponent.username}`);
+
+        // ===== HITUNG ELO =====
         const calc = calculateEloChange(opponent.elo || 100, currentUser.elo || 100);
         const penalty = calc.penalty;
         const reward = calc.reward;
         
-        const loserReward = -penalty;
-        const winnerReward = reward;
+        const loserReward = -penalty; // Yang menyerah (kalah)
+        const winnerReward = reward;  // Opponent (menang)
         
+        // Update ELO
         currentUser.elo = Math.max(0, (currentUser.elo || 100) - penalty);
         opponent.elo = Math.min(3000, (opponent.elo || 100) + reward);
         
         updateRank(currentUser);
         updateRank(opponent);
         
+        // Update stats user (yang menyerah)
         currentUser.gamesPlayed = (currentUser.gamesPlayed || 0) + 1;
         currentUser.currentStreak = 0;
         
+        // Update stats opponent (yang menang)
         opponent.gamesPlayed = (opponent.gamesPlayed || 0) + 1;
         opponent.gamesWon = (opponent.gamesWon || 0) + 1;
         opponent.currentStreak = (opponent.currentStreak || 0) + 1;
         
+        // ===== BUAT ANALISIS UNTUK KEDUA PLAYER =====
+        // Analisis untuk yang menyerah (kalah)
         const userAnalysis = analyzeGame('opponent');
+        // Analisis untuk opponent (menang)
         const opponentAnalysis = analyzeGame('user');
         
+        // Update stats dengan analisis untuk user (yang menyerah)
         currentUser.totalAccuracy = (currentUser.totalAccuracy || 0) + (userAnalysis.accuracy || 0);
         currentUser.totalSpeed = (currentUser.totalSpeed || 0) + (userAnalysis.avgSpeed || 0);
         currentUser.gamesWithStats = (currentUser.gamesWithStats || 0) + 1;
         
+        // Update stats dengan analisis untuk opponent (yang menang)
+        opponent.totalAccuracy = (opponent.totalAccuracy || 0) + (opponentAnalysis.accuracy || 0);
+        opponent.totalSpeed = (opponent.totalSpeed || 0) + (opponentAnalysis.avgSpeed || 0);
+        opponent.gamesWithStats = (opponent.gamesWithStats || 0) + 1;
+        
+        // ===== SIMPAN ROOM STATUS =====
         room.status = 'finished';
         room.gameResult = {
             winner: 'opponent',
             isStalemate: false,
-            winnerAnalysis: opponentAnalysis,
-            loserAnalysis: userAnalysis,
+            winnerAnalysis: opponentAnalysis, // Analisis untuk pemenang
+            loserAnalysis: userAnalysis,      // Analisis untuk pecundang
             winnerReward: winnerReward,
             loserReward: loserReward,
             winnerId: opponent.userId,
@@ -1727,7 +1811,7 @@ resignBtn.addEventListener('click', async function() {
         await updateData(data);
         saveUserSession(currentUser);
         
-        // Save history for resign
+        // ===== SAVE HISTORY UNTUK USER (YANG MENYERAH / KALAH) =====
         await saveGameHistory({
             result: 'lose',
             opponent: opponent.username,
@@ -1739,15 +1823,41 @@ resignBtn.addEventListener('click', async function() {
             timer: timerMinutes,
             opponentId: opponent.userId
         });
+        console.log(`✅ History saved for ${currentUser.username}: lose`);
+        
+        // ===== SAVE HISTORY UNTUK OPPONENT (YANG MENANG) =====
+        // Ambil data terbaru untuk opponent
+        const updatedData = await getData();
+        const updatedOpponent = updatedData.users.find(u => u.userId === opponent.userId);
+        if (updatedOpponent) {
+            // Tambahkan history untuk opponent
+            if (!updatedOpponent.gameHistory) updatedOpponent.gameHistory = [];
+            updatedOpponent.gameHistory.push({
+                result: 'win',
+                opponent: currentUser.username,
+                eloChange: winnerReward,
+                date: new Date().toLocaleString(),
+                timestamp: Date.now(),
+                moves: gameMoves,
+                analysis: opponentAnalysis,
+                timer: timerMinutes,
+                opponentId: currentUser.userId
+            });
+            
+            // Update opponent di database
+            await updateData(updatedData);
+            console.log(`✅ History saved for ${opponent.username}: win`);
+        }
         
         gameActive = false;
         gameOver = true;
         if (refreshInterval) clearInterval(refreshInterval);
         
+        // ===== TAMPILKAN MODAL UNTUK USER (YANG MENYERAH) =====
         rewardAmount = loserReward;
         showAnalysisModal(false, false, userAnalysis);
         
-        console.log('✅ Resign complete');
+        console.log('✅ Resign complete - both players history saved');
     } catch (error) {
         console.error('❌ Resign error:', error);
         showToast('❌ Gagal menyerah: ' + error.message, 'error');
