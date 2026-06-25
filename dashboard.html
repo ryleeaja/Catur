@@ -1707,7 +1707,7 @@ document.getElementById('startOnlineBtn').addEventListener('click', async () => 
 });
 
 // ============================================================
-// ==================== SHOW MATCH CONFIRMATION - FIXED ========
+// ==================== SHOW MATCH CONFIRMATION ================
 // ============================================================
 function showMatchConfirmation(user, opponent, timerEnabled, timerMinutes) {
     if (matchConfirmOverlay) {
@@ -1747,7 +1747,7 @@ function showMatchConfirmation(user, opponent, timerEnabled, timerMinutes) {
     let timeoutId = null;
     
     // ============================================================
-    // ==================== JOIN MATCH - FIXED ====================
+    // ==================== JOIN MATCH - ULTRA FIXED ==============
     // ============================================================
     async function joinMatch() {
         if (confirmed) return;
@@ -1769,23 +1769,41 @@ function showMatchConfirmation(user, opponent, timerEnabled, timerMinutes) {
         try {
             const data = await getData();
             
-            // Cek apakah opponent masih di queue dengan status 'matched'
-            const opponentInQueue = data.matchmaking?.find(m => m.userId === opponent.userId);
-            const userInQueue = data.matchmaking?.find(m => m.userId === user.userId);
+            // 🔥 CEK: Apakah room sudah dibuat? (berarti opponent sudah bergabung)
+            const existingRoom = data.rooms?.find(r => 
+                (r.hostId === user.userId || r.player2Id === user.userId) && 
+                r.status === 'playing'
+            );
             
-            // Jika opponent sudah tidak ada di queue (sudah bergabung atau batal)
-            if (!opponentInQueue) {
-                // Cek apakah room sudah dibuat (berarti opponent sudah bergabung)
-                const existingRoom = data.rooms?.find(r => 
+            if (existingRoom) {
+                // Room sudah dibuat, langsung join
+                const isHost = user.userId === existingRoom.hostId;
+                localStorage.setItem('online_room', JSON.stringify({
+                    roomId: existingRoom.roomId,
+                    isHost: isHost
+                }));
+                overlay.remove();
+                matchConfirmOverlay = null;
+                showToast(`🎮 Bergabung ke room! ${isHost ? 'Anda Putih' : 'Anda Hitam'}`, 'success');
+                window.location.href = 'arena-online.html';
+                return;
+            }
+            
+            // 🔥 CEK: Apakah masih di queue?
+            const userInQueue = data.matchmaking?.find(m => m.userId === user.userId);
+            const opponentInQueue = data.matchmaking?.find(m => m.userId === opponent.userId);
+            
+            // Jika user sudah tidak di queue (sudah bergabung atau batal)
+            if (!userInQueue) {
+                // Cek lagi apakah room sudah ada
+                const roomAgain = data.rooms?.find(r => 
                     (r.hostId === user.userId || r.player2Id === user.userId) && 
                     r.status === 'playing'
                 );
-                
-                if (existingRoom) {
-                    // Room sudah dibuat, langsung join
-                    const isHost = user.userId === existingRoom.hostId;
+                if (roomAgain) {
+                    const isHost = user.userId === roomAgain.hostId;
                     localStorage.setItem('online_room', JSON.stringify({
-                        roomId: existingRoom.roomId,
+                        roomId: roomAgain.roomId,
                         isHost: isHost
                     }));
                     overlay.remove();
@@ -1794,15 +1812,6 @@ function showMatchConfirmation(user, opponent, timerEnabled, timerMinutes) {
                     window.location.href = 'arena-online.html';
                     return;
                 }
-                
-                showToast('❌ Opponent sudah membatalkan match', 'error');
-                overlay.remove();
-                matchConfirmOverlay = null;
-                cancelSearch();
-                return;
-            }
-            
-            if (opponentInQueue.status !== 'matched' || !userInQueue || userInQueue.status !== 'matched') {
                 showToast('❌ Match sudah tidak tersedia', 'error');
                 overlay.remove();
                 matchConfirmOverlay = null;
@@ -1810,6 +1819,43 @@ function showMatchConfirmation(user, opponent, timerEnabled, timerMinutes) {
                 return;
             }
             
+            // Jika opponent sudah tidak ada di queue
+            if (!opponentInQueue) {
+                // Cek apakah room sudah dibuat
+                const roomWithOpponent = data.rooms?.find(r => 
+                    (r.hostId === opponent.userId || r.player2Id === opponent.userId) && 
+                    r.status === 'playing'
+                );
+                if (roomWithOpponent) {
+                    // Opponent sudah membuat room, join saja
+                    const isHost = user.userId === roomWithOpponent.hostId;
+                    localStorage.setItem('online_room', JSON.stringify({
+                        roomId: roomWithOpponent.roomId,
+                        isHost: isHost
+                    }));
+                    overlay.remove();
+                    matchConfirmOverlay = null;
+                    showToast(`🎮 Bergabung ke room! ${isHost ? 'Anda Putih' : 'Anda Hitam'}`, 'success');
+                    window.location.href = 'arena-online.html';
+                    return;
+                }
+                showToast('❌ Opponent sudah membatalkan match', 'error');
+                overlay.remove();
+                matchConfirmOverlay = null;
+                cancelSearch();
+                return;
+            }
+            
+            // Jika status tidak 'matched'
+            if (userInQueue.status !== 'matched' || opponentInQueue.status !== 'matched') {
+                showToast('❌ Match sudah tidak tersedia', 'error');
+                overlay.remove();
+                matchConfirmOverlay = null;
+                cancelSearch();
+                return;
+            }
+            
+            // ===== SEMUA AMAN, BUAT ROOM =====
             // Hapus kedua player dari queue
             data.matchmaking = data.matchmaking.filter(m => 
                 m.userId !== user.userId && m.userId !== opponent.userId
