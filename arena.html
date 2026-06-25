@@ -1,0 +1,1577 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Arena · Catur Elite</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Roboto, sans-serif; }
+        body {
+            min-height: 100vh;
+            background: #0a111f;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+        }
+        .arena-container {
+            max-width: 900px;
+            width: 100%;
+            background: #141e30;
+            border-radius: 2.5rem;
+            padding: 1.5rem;
+            border: 1px solid #2a3f5a;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.8);
+        }
+        .arena-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.8rem;
+            margin-bottom: 0.8rem;
+            padding-bottom: 0.8rem;
+            border-bottom: 2px solid #1f3148;
+        }
+        .arena-header .back-btn {
+            background: #4d5f72;
+            border: none;
+            color: white;
+            padding: 0.3rem 1.2rem;
+            border-radius: 40px;
+            cursor: pointer;
+            font-weight: 600;
+            border: 1px solid #6a7f99;
+            transition: 0.2s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.85rem;
+        }
+        .arena-header .back-btn:hover { background: #647b94; }
+        .arena-header .info {
+            color: #b6cef0;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        .arena-header .info .elo { color: #f5d742; font-weight: 700; }
+        .arena-header .info .diff {
+            background: #0f1a2b;
+            padding: 0.1rem 0.8rem;
+            border-radius: 30px;
+            border: 1px solid #2a405a;
+            font-size: 0.75rem;
+        }
+        .arena-header .info .reward {
+            color: #7ae0a0;
+            font-size: 0.75rem;
+            background: #0b1422;
+            padding: 0.1rem 0.6rem;
+            border-radius: 30px;
+            border: 1px solid #4a8a5a;
+        }
+        .arena-header .info .color-badge {
+            font-size: 0.7rem;
+            background: #0b1422;
+            padding: 0.05rem 0.6rem;
+            border-radius: 30px;
+            border: 1px solid #4a8a5a;
+        }
+        .arena-header .info .color-badge.white { color: #f0f0f0; border-color: #6a8aaa; }
+        .arena-header .info .color-badge.black { color: #222; background: #ddd; border-color: #888; }
+
+        .player-timers {
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 0.6rem;
+            padding: 0.4rem 0.8rem;
+            background: #0a111f;
+            border-radius: 1rem;
+            border: 1px solid #2a405a;
+        }
+        .player-timer {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+            padding: 0.2rem 0.8rem;
+            border-radius: 30px;
+            transition: 0.3s;
+        }
+        .player-timer .color-dot { width: 12px; height: 12px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.2); }
+        .player-timer .color-dot.white { background: #f0f0f0; }
+        .player-timer .color-dot.black { background: #222; }
+        .player-timer .time { font-variant-numeric: tabular-nums; min-width: 50px; color: #b3e0a0; }
+        .player-timer.active { background: #1a3050; border: 1px solid #4a8ad4; box-shadow: 0 0 20px rgba(74,138,212,0.15); }
+        .player-timer.active .time { color: #7ae0ff; }
+        .player-timer.low-time .time { color: #ff6b6b; animation: blink 0.8s ease-in-out infinite; }
+        @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+        .main-area {
+            display: flex;
+            gap: 1.2rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .board-wrapper { flex: 0 0 auto; }
+        .board-box {
+            width: 100%;
+            max-width: 480px;
+            aspect-ratio: 1/1;
+            background: #1a2840;
+            border-radius: 24px;
+            padding: 8px;
+            box-shadow: 0 12px 28px rgba(0,0,0,0.7);
+            border: 2px solid #2a405a;
+        }
+        #chessBoard {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            aspect-ratio: 1/1;
+            width: 100%;
+            border-radius: 16px;
+            overflow: hidden;
+        }
+        .square {
+            aspect-ratio: 1/1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.2rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.15s ease, transform 0.1s ease;
+            user-select: none;
+            text-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+        .square.light { background: #e3dac9; color: #1e2b3a; }
+        .square.dark { background: #b3927a; color: #1a1f2b; }
+        .square.selected { background: #b9d6a2 !important; box-shadow: inset 0 0 0 3px #ffee88; }
+        .square.legal-move { background: #a2c98a !important; box-shadow: inset 0 0 0 3px #b3ff9b; }
+        .square.legal-move.en-passant { background: #ffb347 !important; box-shadow: inset 0 0 0 3px #ff8800; }
+        .square.last-move { background: #d4e8b0 !important; }
+        .square:active { transform: scale(0.93); }
+        .square.moving { animation: pieceMove 0.3s ease; }
+        @keyframes pieceMove { 0% { transform: scale(1.3); opacity: 0.6; } 50% { transform: scale(1.1); } 100% { transform: scale(1); opacity: 1; } }
+
+        .history-panel {
+            flex: 1;
+            min-width: 180px;
+            max-width: 280px;
+            background: #0f1a2b;
+            border-radius: 1.2rem;
+            border: 1px solid #2a405a;
+            padding: 0.8rem 1rem;
+            height: fit-content;
+            max-height: 480px;
+            display: flex;
+            flex-direction: column;
+        }
+        .history-panel .title {
+            color: #b6cef0;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            padding-bottom: 0.3rem;
+            border-bottom: 1px solid #1a2840;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .history-panel .title span { color: #8aa3c9; font-weight: 400; font-size: 0.7rem; }
+        .history-list { overflow-y: auto; flex: 1; max-height: 400px; }
+        .history-list::-webkit-scrollbar { width: 4px; }
+        .history-list::-webkit-scrollbar-track { background: #0a111f; border-radius: 10px; }
+        .history-list::-webkit-scrollbar-thumb { background: #2a405a; border-radius: 10px; }
+        .history-item { display: flex; gap: 0.5rem; padding: 0.2rem 0; font-size: 0.75rem; color: #c6d8f0; border-bottom: 1px solid #0a111f; }
+        .history-item .move-num { color: #5a7394; min-width: 28px; font-weight: 600; }
+        .history-item .move-white { color: #e8f0ff; min-width: 60px; }
+        .history-item .move-black { color: #b6cef0; min-width: 60px; }
+        .history-empty { color: #5a7394; font-size: 0.75rem; text-align: center; padding: 1rem 0; }
+        .history-item.current-move { background: #1a2840; border-radius: 4px; padding: 0.2rem 0.3rem; }
+
+        .status-bar {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            max-width: 480px;
+            margin: 0.6rem auto 0;
+            background: #0f1a2b;
+            padding: 0.4rem 1.2rem;
+            border-radius: 60px;
+            border: 1px solid #2a405a;
+            color: #d5e2f5;
+            font-size: 0.85rem;
+            min-height: 42px;
+        }
+        #statusMessage { font-weight: 500; display: flex; align-items: center; gap: 6px; justify-content: center; }
+        #statusMessage i { color: #f5c542; }
+        #statusText { display: inline-block; min-width: 120px; text-align: center; }
+
+        .controls-arena {
+            display: flex;
+            gap: 0.8rem;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 0.8rem;
+        }
+        .btn-primary {
+            background: #2f5b8a;
+            border: none;
+            color: white;
+            font-weight: 700;
+            padding: 0.4rem 1.5rem;
+            border-radius: 40px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border: 1px solid #5a83b5;
+            transition: 0.15s;
+            font-size: 0.85rem;
+        }
+        .btn-primary:hover { background: #4273ae; transform: scale(1.02); }
+        .btn-danger { background: #7a4a4a; border-color: #a05d5d; }
+        .btn-danger:hover { background: #965757; }
+
+        .footer { margin-top: 0.8rem; color: #5a7394; font-size: 0.7rem; text-align: center; }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal-box {
+            background: #141e30;
+            padding: 2rem;
+            border-radius: 2rem;
+            border: 1px solid #2a405a;
+            max-width: 450px;
+            width: 90%;
+            text-align: center;
+            color: #e8f0ff;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal-box .icon { font-size: 4rem; margin-bottom: 0.5rem; }
+        .modal-box h2 { margin-bottom: 0.3rem; }
+        .modal-box .sub { color: #b6cef0; margin-bottom: 1rem; font-size: 0.9rem; }
+        .modal-box .btn-primary { font-size: 1rem; padding: 0.6rem 2rem; margin-top: 0.5rem; }
+        .modal-box .btn-primary.gold { background: #f5c542; color: #0a111f; border-color: #f5c542; }
+        .modal-box .btn-primary.gold:hover { background: #e0b83a; }
+
+        .analysis-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            margin: 1rem 0;
+        }
+        .analysis-item {
+            background: #0a111f;
+            padding: 0.5rem;
+            border-radius: 0.8rem;
+            border: 1px solid #2a405a;
+        }
+        .analysis-item .label { font-size: 0.6rem; color: #8aa3c9; text-transform: uppercase; }
+        .analysis-item .value { font-size: 1.2rem; font-weight: 700; }
+        .analysis-item .value.gold { color: #f5c542; }
+        .analysis-item .value.green { color: #7ae0a0; }
+        .analysis-item .value.red { color: #ff6b6b; }
+        .analysis-item .value.blue { color: #6b9fff; }
+        .analysis-item .value.purple { color: #c97ae0; }
+
+        .move-history-modal {
+            background: #0a111f;
+            border-radius: 0.8rem;
+            padding: 0.5rem;
+            max-height: 150px;
+            overflow-y: auto;
+            text-align: left;
+            font-size: 0.75rem;
+            color: #b6cef0;
+            border: 1px solid #2a405a;
+            margin: 0.5rem 0;
+        }
+        .move-history-modal .move-num { color: #8aa3c9; margin-right: 4px; }
+        .move-history-modal .move-white { color: #e8f0ff; }
+        .move-history-modal .move-black { color: #b6cef0; }
+
+        .promotion-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7);
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+        }
+        .promotion-modal.show { display: flex; }
+        .promotion-box {
+            background: #141e30;
+            padding: 1.5rem 2rem;
+            border-radius: 2rem;
+            border: 1px solid #2a405a;
+            text-align: center;
+            color: #e8f0ff;
+        }
+        .promotion-box h3 { margin-bottom: 1rem; }
+        .promotion-options { display: flex; gap: 1rem; justify-content: center; }
+        .promotion-btn {
+            font-size: 3rem;
+            padding: 0.3rem 0.8rem;
+            border-radius: 1rem;
+            border: 2px solid #2a405a;
+            background: #0a111f;
+            cursor: pointer;
+            transition: 0.2s;
+            color: #e8f0ff;
+        }
+        .promotion-btn:hover { border-color: #f5c542; transform: scale(1.1); background: #1a2840; }
+
+        @media (max-width: 700px) {
+            .main-area { flex-direction: column; align-items: center; }
+            .history-panel { max-width: 100%; width: 100%; max-height: 200px; }
+            .history-list { max-height: 150px; }
+            .board-box { max-width: 100%; }
+            .arena-container { padding: 1rem; }
+            .square { font-size: 1.8rem; }
+            .player-timers { flex-direction: column; gap: 0.3rem; }
+            .player-timer { font-size: 0.8rem; padding: 0.1rem 0.5rem; }
+            .analysis-grid { grid-template-columns: 1fr 1fr; }
+        }
+    </style>
+</head>
+<body>
+<div class="arena-container">
+    <div class="arena-header">
+        <a href="dashboard.html" class="back-btn"><i class="fas fa-arrow-left"></i> Dashboard</a>
+        <div class="info">
+            <span><i class="fas fa-user"></i> <span id="userName">Pemain</span></span>
+            <span class="elo"><i class="fas fa-star"></i> <span id="userElo">100</span></span>
+            <span class="diff" id="diffDisplay">Sedang</span>
+            <span class="reward" id="rewardDisplay">+25 / -10</span>
+            <span class="color-badge" id="colorBadge">⚪ Putih</span>
+        </div>
+    </div>
+
+    <div class="player-timers" id="playerTimers">
+        <div class="player-timer active" id="timerWhite">
+            <span class="color-dot white"></span>
+            <span>Putih</span>
+            <span class="time" id="timeWhite">05:00</span>
+        </div>
+        <div class="player-timer" id="timerBlack">
+            <span class="color-dot black"></span>
+            <span>Hitam</span>
+            <span class="time" id="timeBlack">05:00</span>
+        </div>
+    </div>
+
+    <div class="main-area">
+        <div class="board-wrapper">
+            <div class="board-box">
+                <div id="chessBoard"></div>
+            </div>
+            <div class="status-bar">
+                <div id="statusMessage">
+                    <i class="fas fa-chess-queen"></i> 
+                    <span id="statusText">Siap</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="history-panel">
+            <div class="title">
+                📜 Riwayat Gerakan
+                <span id="moveCount">0 gerakan</span>
+            </div>
+            <div class="history-list" id="historyList">
+                <div class="history-empty">Belum ada gerakan</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="controls-arena">
+        <button class="btn-primary btn-danger" id="resignBtn"><i class="fas fa-flag"></i> Menyerah</button>
+    </div>
+
+    <div class="footer">Klik bidak sendiri → kotak hijau untuk bergerak · ELO System: Mudah +10/-5, Sedang +25/-10, Sulit +45/-20</div>
+</div>
+
+<!-- Modal Promosi -->
+<div class="promotion-modal" id="promotionModal">
+    <div class="promotion-box">
+        <h3>👑 Promosi Pion</h3>
+        <p style="color:#b6cef0; margin-bottom:1rem;">Pilih bidak untuk promosi:</p>
+        <div class="promotion-options" id="promotionOptions">
+            <button class="promotion-btn" data-piece="q">♕</button>
+            <button class="promotion-btn" data-piece="r">♖</button>
+            <button class="promotion-btn" data-piece="b">♗</button>
+            <button class="promotion-btn" data-piece="n">♘</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Game Over + Analisis -->
+<div class="modal-overlay" id="gameOverModal">
+    <div class="modal-box">
+        <div class="icon" id="resultIcon">🏆</div>
+        <h2 id="modalTitle">Game Selesai</h2>
+        <div class="sub" id="modalSub">Hasil pertandingan</div>
+        
+        <div class="analysis-grid" id="analysisGrid">
+            <div class="analysis-item"><div class="label">🎯 Akurasi</div><div class="value gold" id="accuracy">0%</div></div>
+            <div class="analysis-item"><div class="label">⭐ Rating</div><div class="value" id="gameRating" style="color:#f5c542;">-</div></div>
+            <div class="analysis-item"><div class="label">✅ Gerakan Bagus</div><div class="value green" id="goodMoves">0</div></div>
+            <div class="analysis-item"><div class="label">❌ Blunder</div><div class="value red" id="blunders">0</div></div>
+            <div class="analysis-item"><div class="label">⚡ Kecepatan</div><div class="value blue" id="gameSpeed">0s</div></div>
+            <div class="analysis-item"><div class="label">💰 ELO</div><div class="value gold" id="eloReward">+0</div></div>
+        </div>
+
+        <div class="move-history-modal" id="moveHistoryModal">
+            <div style="color:#8aa3c9; text-align:center;">Riwayat gerakan</div>
+        </div>
+
+        <button class="btn-primary gold" id="modalCloseBtn"><i class="fas fa-arrow-left"></i> Kembali ke Dashboard</button>
+    </div>
+</div>
+
+<script>
+    // ===== KONFIGURASI =====
+    const CONFIG = {
+        BIN_ID: '6a3cd052da38895dfefbb5d5',
+        API_KEY: '$2a$10$cd1IrJqQ3YgBdhLSJO0IHuCNdln2PYc0qoLrnVN9waRlmHU3t7MKK',
+        BASE_URL: 'https://api.jsonbin.io/v3/b'
+    };
+
+    // ===== FUNGSI JSONBIN =====
+    async function getData() {
+        try {
+            const response = await fetch(`${CONFIG.BASE_URL}/${CONFIG.BIN_ID}`, {
+                headers: { 'X-Master-Key': CONFIG.API_KEY }
+            });
+            if (!response.ok) throw new Error('Gagal mengambil data');
+            const data = await response.json();
+            return data.record || { users: [] };
+        } catch (error) {
+            console.error('Error getData:', error);
+            return { users: [] };
+        }
+    }
+
+    async function updateData(data) {
+        try {
+            const response = await fetch(`${CONFIG.BASE_URL}/${CONFIG.BIN_ID}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Master-Key': CONFIG.API_KEY
+                },
+                body: JSON.stringify(data)
+            });
+            if (!response.ok) throw new Error('Gagal menyimpan data');
+            return await response.json();
+        } catch (error) {
+            console.error('Error updateData:', error);
+            throw error;
+        }
+    }
+
+    // ===== SESSION & SETTINGS =====
+    function getUserSession() {
+        const data = localStorage.getItem('chess_user');
+        if (!data) { 
+            console.log('❌ No session found, redirect to login');
+            window.location.href = 'index.html'; 
+            return null; 
+        }
+        try {
+            const parsed = JSON.parse(data);
+            if (parsed && parsed.username && parsed.userId) {
+                console.log('✅ Session valid:', parsed.username);
+                return parsed;
+            } else {
+                console.log('❌ Invalid session, redirect to login');
+                localStorage.removeItem('chess_user');
+                window.location.href = 'index.html';
+                return null;
+            }
+        } catch (e) {
+            console.log('❌ Error parsing session:', e);
+            localStorage.removeItem('chess_user');
+            window.location.href = 'index.html';
+            return null;
+        }
+    }
+
+    function getGameSettings() {
+        const data = localStorage.getItem('game_settings');
+        if (data) return JSON.parse(data);
+        return { difficulty: 'medium', timerEnabled: true, timerMinutes: 5, playerColor: 'white' };
+    }
+
+    // ===== ELO REWARD & PENALTY =====
+    function getEloReward(difficulty) {
+        const rewards = { 'easy': 10, 'medium': 25, 'hard': 45 };
+        return rewards[difficulty] || 25;
+    }
+
+    function getEloPenalty(difficulty) {
+        const penalties = { 'easy': 5, 'medium': 10, 'hard': 20 };
+        return penalties[difficulty] || 10;
+    }
+
+    function getEloDisplay(difficulty) {
+        const reward = getEloReward(difficulty);
+        const penalty = getEloPenalty(difficulty);
+        return `+${reward} / -${penalty}`;
+    }
+
+    // ===== STATE =====
+    let board = [];
+    let currentTurn = 'w';
+    let selectedSquare = null;
+    let legalMovesForSelected = [];
+    let gameActive = false;
+    let gameOver = false;
+    let userColor = 'w';
+    let botColor = 'b';
+    let currentUser = null;
+    let elo = 100;
+    let settings = {};
+    let lastMove = null;
+    let isBotThinking = false;
+    let enPassantTarget = null;
+    let gameMoves = [];
+    let moveTimestamps = [];
+    let gameStartTime = null;
+    let moveHistoryList = [];
+
+    let castling = {
+        w: { kingSide: true, queenSide: true },
+        b: { kingSide: true, queenSide: true }
+    };
+
+    let timeWhite = 300;
+    let timeBlack = 300;
+    let timerInterval = null;
+    let timerEnabled = true;
+    let activeTimer = 'w';
+    let rewardAmount = 25;
+
+    // DOM
+    const boardEl = document.getElementById('chessBoard');
+    const statusText = document.getElementById('statusText');
+    const timeWhiteEl = document.getElementById('timeWhite');
+    const timeBlackEl = document.getElementById('timeBlack');
+    const timerWhiteEl = document.getElementById('timerWhite');
+    const timerBlackEl = document.getElementById('timerBlack');
+    const userName = document.getElementById('userName');
+    const userElo = document.getElementById('userElo');
+    const diffDisplay = document.getElementById('diffDisplay');
+    const rewardDisplay = document.getElementById('rewardDisplay');
+    const colorBadge = document.getElementById('colorBadge');
+    const historyList = document.getElementById('historyList');
+    const moveCount = document.getElementById('moveCount');
+    const modal = document.getElementById('gameOverModal');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalSub = document.getElementById('modalSub');
+    const resultIcon = document.getElementById('resultIcon');
+    const modalCloseBtn = document.getElementById('modalCloseBtn');
+    const promotionModal = document.getElementById('promotionModal');
+    const promotionOptions = document.getElementById('promotionOptions');
+
+    // ===== FUNGSI CATUR =====
+    function createBoard() {
+        const b = Array(8).fill().map(() => Array(8).fill(null));
+        const back = ['r','n','b','q','k','b','n','r'];
+        for (let c=0; c<8; c++) {
+            b[0][c] = { type: back[c], color: 'b' };
+            b[1][c] = { type: 'p', color: 'b' };
+            b[6][c] = { type: 'p', color: 'w' };
+            b[7][c] = { type: back[c], color: 'w' };
+        }
+        castling = {
+            w: { kingSide: true, queenSide: true },
+            b: { kingSide: true, queenSide: true }
+        };
+        enPassantTarget = null;
+        gameMoves = [];
+        moveTimestamps = [];
+        moveHistoryList = [];
+        gameStartTime = null;
+        return b;
+    }
+
+    function cloneBoard(b) { return b.map(row => row.map(cell => cell ? {...cell} : null)); }
+
+    function findKing(b, color) {
+        for (let r=0;r<8;r++) for (let c=0;c<8;c++) {
+            const p = b[r][c];
+            if (p && p.type==='k' && p.color===color) return {row:r,col:c};
+        }
+        return null;
+    }
+
+    function isAttacked(b, row, col, byColor) {
+        for (let r=0;r<8;r++) for (let c=0;c<8;c++) {
+            const p = b[r][c];
+            if (!p || p.color!==byColor) continue;
+            const moves = rawMoves(b, r, c, true);
+            for (const m of moves) if (m.row===row && m.col===col) return true;
+        }
+        return false;
+    }
+
+    function rawMoves(b, row, col, forAttack = false) {
+        const p = b[row][col];
+        if (!p) return [];
+        const {type, color} = p;
+        const enemy = color==='w'?'b':'w';
+        const moves = [];
+        const dir = color==='w'?-1:1;
+        const startRow = color==='w'?6:1;
+        const slide = (dr,dc) => {
+            let r=row+dr, c=col+dc;
+            while (r>=0&&r<8&&c>=0&&c<8) {
+                if (b[r][c]) { if (b[r][c].color!==color) moves.push({row:r,col:c}); break; }
+                moves.push({row:r,col:c});
+                r+=dr; c+=dc;
+            }
+        };
+        switch(type) {
+            case 'p': {
+                const r1 = row+dir;
+                if (r1>=0&&r1<8&&!b[r1][col]) {
+                    moves.push({row:r1,col});
+                    if (row===startRow && !b[row+2*dir][col]) moves.push({row:row+2*dir,col});
+                }
+                for (const dc of [-1,1]) {
+                    const c2=col+dc;
+                    if (c2>=0&&c2<8&&r1>=0&&r1<8) {
+                        if (b[r1][c2] && b[r1][c2].color===enemy) moves.push({row:r1,col:c2});
+                        if (!forAttack && enPassantTarget && enPassantTarget.row === r1 && enPassantTarget.col === c2) {
+                            moves.push({row: r1, col: c2, enPassant: true});
+                        }
+                    }
+                }
+                break;
+            }
+            case 'n': {
+                const j=[[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]];
+                for (const [dr,dc] of j) { const r=row+dr,c=col+dc; if (r>=0&&r<8&&c>=0&&c<8&&(!b[r][c]||b[r][c].color!==color)) moves.push({row:r,col:c}); }
+                break;
+            }
+            case 'b': slide(1,1); slide(1,-1); slide(-1,1); slide(-1,-1); break;
+            case 'r': slide(1,0); slide(-1,0); slide(0,1); slide(0,-1); break;
+            case 'q': slide(1,1); slide(1,-1); slide(-1,1); slide(-1,-1); slide(1,0); slide(-1,0); slide(0,1); slide(0,-1); break;
+            case 'k': {
+                for (let dr=-1;dr<=1;dr++) for (let dc=-1;dc<=1;dc++) {
+                    if(dr===0&&dc===0) continue;
+                    const r=row+dr,c=col+dc;
+                    if(r>=0&&r<8&&c>=0&&c<8&&(!b[r][c]||b[r][c].color!==color)) moves.push({row:r,col:c});
+                }
+                if (!forAttack && type === 'k') {
+                    const enemyColor = color === 'w' ? 'b' : 'w';
+                    const king = findKing(b, color);
+                    if (king && !isAttacked(b, king.row, king.col, enemyColor)) {
+                        const rookRow = color === 'w' ? 7 : 0;
+                        if (castling[color].kingSide) {
+                            if (!b[rookRow][5] && !b[rookRow][6] && 
+                                b[rookRow][7] && b[rookRow][7].type === 'r' && b[rookRow][7].color === color) {
+                                if (!isAttacked(b, rookRow, 5, enemyColor) && !isAttacked(b, rookRow, 6, enemyColor)) {
+                                    moves.push({row: rookRow, col: 6, castling: 'kingSide'});
+                                }
+                            }
+                        }
+                        if (castling[color].queenSide) {
+                            if (!b[rookRow][1] && !b[rookRow][2] && !b[rookRow][3] &&
+                                b[rookRow][0] && b[rookRow][0].type === 'r' && b[rookRow][0].color === color) {
+                                if (!isAttacked(b, rookRow, 3, enemyColor) && !isAttacked(b, rookRow, 2, enemyColor)) {
+                                    moves.push({row: rookRow, col: 2, castling: 'queenSide'});
+                                }
+                            }
+                        }
+                    }
+                }
+                break;
+            }
+        }
+        return moves;
+    }
+
+    function legalMoves(b, row, col) {
+        const p = b[row][col];
+        if (!p) return [];
+        const raw = rawMoves(b, row, col);
+        const legal = [];
+        for (const mv of raw) {
+            const sim = cloneBoard(b);
+            if (mv.enPassant) {
+                const pawnRow = p.color === 'w' ? mv.row + 1 : mv.row - 1;
+                sim[pawnRow][mv.col] = null;
+                sim[mv.row][mv.col] = sim[row][col];
+                sim[row][col] = null;
+            } else if (mv.castling) {
+                const row2 = mv.row;
+                if (mv.castling === 'kingSide') {
+                    sim[row2][6] = sim[row2][4];
+                    sim[row2][4] = null;
+                    sim[row2][5] = sim[row2][7];
+                    sim[row2][7] = null;
+                } else {
+                    sim[row2][2] = sim[row2][4];
+                    sim[row2][4] = null;
+                    sim[row2][3] = sim[row2][0];
+                    sim[row2][0] = null;
+                }
+            } else {
+                sim[mv.row][mv.col] = sim[row][col];
+                sim[row][col] = null;
+            }
+            const king = findKing(sim, p.color);
+            if (!king) continue;
+            if (!isAttacked(sim, king.row, king.col, p.color==='w'?'b':'w')) {
+                legal.push(mv);
+            }
+        }
+        return legal;
+    }
+
+    function hasLegal(b, color) {
+        for (let r=0;r<8;r++) for (let c=0;c<8;c++) {
+            const p = b[r][c];
+            if (p && p.color===color && legalMoves(b, r, c).length>0) return true;
+        }
+        return false;
+    }
+
+    function gameStatus(b, color) {
+        const king = findKing(b, color);
+        if (!king) return 'checkmate';
+        const inCheck = isAttacked(b, king.row, king.col, color==='w'?'b':'w');
+        const has = hasLegal(b, color);
+        if (!has) return inCheck ? 'checkmate' : 'stalemate';
+        if (inCheck) return 'check';
+        return 'playing';
+    }
+
+    function makeMove(b, fr, fc, tr, tc, moveData = null) {
+        const p = b[fr][fc];
+        if (!p) return {success: false};
+        
+        if (moveData && moveData.enPassant) {
+            const pawnRow = p.color === 'w' ? tr + 1 : tr - 1;
+            b[pawnRow][tc] = null;
+            b[tr][tc] = p;
+            b[fr][fc] = null;
+        } else if (moveData && moveData.castling) {
+            const row = fr;
+            if (moveData.castling === 'kingSide') {
+                b[row][6] = b[row][4];
+                b[row][4] = null;
+                b[row][5] = b[row][7];
+                b[row][7] = null;
+                castling[p.color].kingSide = false;
+                castling[p.color].queenSide = false;
+                return {success: true, captured: null, castling: 'kingSide'};
+            } else {
+                b[row][2] = b[row][4];
+                b[row][4] = null;
+                b[row][3] = b[row][0];
+                b[row][0] = null;
+                castling[p.color].kingSide = false;
+                castling[p.color].queenSide = false;
+                return {success: true, captured: null, castling: 'queenSide'};
+            }
+        } else {
+            b[tr][tc] = p;
+            b[fr][fc] = null;
+        }
+
+        if (p.type === 'k') {
+            castling[p.color].kingSide = false;
+            castling[p.color].queenSide = false;
+        }
+        if (p.type === 'r') {
+            if (fr === 0 && fc === 0) castling['b'].queenSide = false;
+            if (fr === 0 && fc === 7) castling['b'].kingSide = false;
+            if (fr === 7 && fc === 0) castling['w'].queenSide = false;
+            if (fr === 7 && fc === 7) castling['w'].kingSide = false;
+        }
+        if (tr === 0 && tc === 0) castling['b'].queenSide = false;
+        if (tr === 0 && tc === 7) castling['b'].kingSide = false;
+        if (tr === 7 && tc === 0) castling['w'].queenSide = false;
+        if (tr === 7 && tc === 7) castling['w'].kingSide = false;
+
+        enPassantTarget = null;
+        if (p.type === 'p' && Math.abs(tr - fr) === 2) {
+            enPassantTarget = { row: (fr + tr) / 2, col: fc };
+        }
+
+        if (p.type === 'p' && (tr === 0 || tr === 7)) {
+            return {success: true, promotion: true};
+        }
+
+        return {success: true, promotion: false};
+    }
+
+    // ===== BOT =====
+    function botMove() {
+        // Bot bermain sebagai kebalikan dari user
+        const botColor = userColor === 'w' ? 'b' : 'w';
+        
+        if (!gameActive || gameOver || currentTurn !== botColor || isBotThinking) return;
+        isBotThinking = true;
+        statusText.textContent = '🤔 Bot sedang berpikir...';
+        
+        setTimeout(() => {
+            if (!gameActive || gameOver || currentTurn !== botColor) {
+                isBotThinking = false;
+                return;
+            }
+            
+            const diff = settings.difficulty || 'medium';
+            const all = [];
+            for (let r=0;r<8;r++) for (let c=0;c<8;c++) {
+                const p = board[r][c];
+                if (p && p.color === botColor) {
+                    const moves = legalMoves(board, r, c);
+                    for (const m of moves) {
+                        all.push({
+                            fromRow: r, fromCol: c, 
+                            toRow: m.row, toCol: m.col, 
+                            castling: m.castling || null,
+                            enPassant: m.enPassant || false
+                        });
+                    }
+                }
+            }
+            
+            if (all.length===0) { isBotThinking = false; endGame(); return; }
+            
+            let chosen = null;
+            if (diff==='easy') {
+                chosen = all[Math.floor(Math.random()*all.length)];
+            } else if (diff==='medium') {
+                const scored = all.map(mv => {
+                    const cap = board[mv.toRow][mv.toCol];
+                    let score = cap ? ({p:1,n:3,b:3,r:5,q:9}[cap.type]||0) : 0;
+                    if (mv.castling) score += 1;
+                    if (mv.enPassant) score += 1.5;
+                    score += Math.random()*0.3;
+                    return {move:mv, score};
+                });
+                scored.sort((a,b)=>b.score-a.score);
+                const top = scored.slice(0, Math.min(3, scored.length));
+                chosen = top[Math.floor(Math.random()*top.length)].move;
+            } else {
+                const scored = all.map(mv => {
+                    const cap = board[mv.toRow][mv.toCol];
+                    let score = cap ? ({p:1,n:3,b:3,r:5,q:9}[cap.type]||0) : 0;
+                    if (mv.toRow===0 || mv.toRow===7) score += 2;
+                    if (mv.castling) score += 1.5;
+                    if (mv.enPassant) score += 2;
+                    return {move:mv, score};
+                });
+                scored.sort((a,b)=>b.score-a.score);
+                chosen = scored[0].move;
+            }
+            
+            if (!chosen) { isBotThinking = false; return; }
+            
+            const {fromRow, fromCol, toRow, toCol, castling, enPassant} = chosen;
+            lastMove = { from: {row: fromRow, col: fromCol}, to: {row: toRow, col: toCol} };
+            
+            const moveData = { castling, enPassant };
+            const result = makeMove(board, fromRow, fromCol, toRow, toCol, moveData);
+            
+            if (result.success) {
+                const moveStr = `${String.fromCharCode(97+fromCol)}${8-fromRow} → ${String.fromCharCode(97+toCol)}${8-toRow}`;
+                const moveColor = botColor === 'b' ? 'b' : 'w';
+                gameMoves.push({ from: {row: fromRow, col: fromCol}, to: {row: toRow, col: toCol}, color: moveColor, move: moveStr });
+                moveHistoryList.push({ num: Math.floor(gameMoves.length/2) + 1, white: null, black: moveStr });
+                updateHistory();
+            }
+            
+            // Ganti giliran ke user
+            currentTurn = userColor;
+            isBotThinking = false;
+            renderBoard();
+            updateStatusUI();
+            
+            // Switch timer ke user
+            switchTimer(userColor);
+            
+            const st = gameStatus(board, userColor);
+            if (st==='checkmate') { setTimeout(() => handleWin(), 200); return; }
+            else if (st==='stalemate') { setTimeout(() => handleStalemate(), 200); return; }
+            if (!hasLegal(board, userColor)) { endGame(); return; }
+        }, 500 + Math.random() * 500);
+    }
+
+    // ===== TIMER =====
+    function initTimers() {
+        const minutes = settings.timerEnabled ? (settings.timerMinutes || 5) : 0;
+        timeWhite = minutes * 60;
+        timeBlack = minutes * 60;
+        updateTimerDisplay();
+    }
+
+    function startTimer() {
+        if (timerInterval) clearInterval(timerInterval);
+        if (!timerEnabled || settings.timerMinutes === 0) {
+            timeWhiteEl.textContent = '--:--';
+            timeBlackEl.textContent = '--:--';
+            return;
+        }
+        timerInterval = setInterval(() => {
+            if (activeTimer === 'w') {
+                timeWhite--;
+                if (timeWhite <= 0) {
+                    timeWhite = 0;
+                    updateTimerDisplay();
+                    clearInterval(timerInterval);
+                    timerInterval = null;
+                    if (gameActive && !gameOver) { handleTimeout('w'); }
+                    return;
+                }
+            } else if (activeTimer === 'b') {
+                timeBlack--;
+                if (timeBlack <= 0) {
+                    timeBlack = 0;
+                    updateTimerDisplay();
+                    clearInterval(timerInterval);
+                    timerInterval = null;
+                    if (gameActive && !gameOver) { handleTimeout('b'); }
+                    return;
+                }
+            }
+            updateTimerDisplay();
+        }, 1000);
+    }
+
+    function switchTimer(color) {
+        activeTimer = color;
+        updateTimerUI();
+        if (timerEnabled && settings.timerMinutes > 0) {
+            startTimer();
+        }
+    }
+
+    function updateTimerUI() {
+        timerWhiteEl.classList.remove('active', 'low-time');
+        timerBlackEl.classList.remove('active', 'low-time');
+        
+        if (activeTimer === 'w') {
+            timerWhiteEl.classList.add('active');
+            if (timeWhite <= 60) timerWhiteEl.classList.add('low-time');
+        } else if (activeTimer === 'b') {
+            timerBlackEl.classList.add('active');
+            if (timeBlack <= 60) timerBlackEl.classList.add('low-time');
+        }
+    }
+
+    function updateTimerDisplay() {
+        const formatTime = (seconds) => {
+            if (!timerEnabled || settings.timerMinutes === 0) return '--:--';
+            const m = Math.floor(Math.max(0, seconds)/60);
+            const s = Math.max(0, seconds)%60;
+            return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+        };
+        timeWhiteEl.textContent = formatTime(timeWhite);
+        timeBlackEl.textContent = formatTime(timeBlack);
+        updateTimerUI();
+    }
+
+    function stopTimer() {
+        if (timerInterval) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+        }
+    }
+
+    function resetTimers() {
+        stopTimer();
+        initTimers();
+        activeTimer = 'w';
+        updateTimerUI();
+    }
+
+    // ===== HISTORY =====
+    function updateHistory() {
+        historyList.innerHTML = '';
+        if (moveHistoryList.length === 0) {
+            historyList.innerHTML = '<div class="history-empty">Belum ada gerakan</div>';
+            moveCount.textContent = '0 gerakan';
+            return;
+        }
+        
+        moveCount.textContent = `${moveHistoryList.length} gerakan`;
+        
+        moveHistoryList.forEach((item, index) => {
+            const div = document.createElement('div');
+            div.className = 'history-item';
+            if (index === moveHistoryList.length - 1) {
+                div.classList.add('current-move');
+            }
+            
+            let html = `<span class="move-num">${item.num}.</span>`;
+            html += `<span class="move-white">${item.white || ''}</span>`;
+            html += `<span class="move-black">${item.black || ''}</span>`;
+            div.innerHTML = html;
+            historyList.appendChild(div);
+        });
+        
+        historyList.scrollTop = historyList.scrollHeight;
+    }
+
+    function addMoveToHistory(color, moveStr) {
+        if (color === 'w') {
+            const last = moveHistoryList[moveHistoryList.length - 1];
+            if (last && !last.white) {
+                last.white = moveStr;
+            } else {
+                moveHistoryList.push({ num: moveHistoryList.length + 1, white: moveStr, black: null });
+            }
+        } else {
+            const last = moveHistoryList[moveHistoryList.length - 1];
+            if (last && !last.black) {
+                last.black = moveStr;
+            } else {
+                moveHistoryList.push({ num: moveHistoryList.length + 1, white: null, black: moveStr });
+            }
+        }
+        updateHistory();
+    }
+
+    // ===== PROMOSI =====
+    let pendingPromotion = null;
+
+    function showPromotionModal(color, row, col) {
+        pendingPromotion = { color, row, col };
+        promotionModal.classList.add('show');
+    }
+
+    promotionOptions.addEventListener('click', (e) => {
+        const btn = e.target.closest('.promotion-btn');
+        if (!btn) return;
+        const piece = btn.dataset.piece;
+        if (pendingPromotion) {
+            const { color, row, col } = pendingPromotion;
+            board[row][col] = { type: piece, color: color };
+            pendingPromotion = null;
+            promotionModal.classList.remove('show');
+            renderBoard();
+            
+            const moveStr = `${String.fromCharCode(97+col)}${8-row} → promosi ${piece}`;
+            gameMoves.push({ from: {row, col}, to: {row, col}, color: currentTurn === 'w' ? 'b' : 'w', move: moveStr, promotion: piece });
+            addMoveToHistory(currentTurn === 'w' ? 'b' : 'w', moveStr);
+            
+            const st = gameStatus(board, currentTurn === 'w' ? 'b' : 'w');
+            if (st === 'checkmate') {
+                if (currentTurn === userColor) handleWin();
+                else handleLose();
+                return;
+            } else if (st === 'stalemate') {
+                handleStalemate();
+                return;
+            }
+            if (!hasLegal(board, currentTurn === 'w' ? 'b' : 'w')) { endGame(); return; }
+            
+            // Jika giliran bot, jalankan bot
+            if (currentTurn !== userColor && !gameOver) {
+                setTimeout(() => botMove(), 300);
+            }
+        }
+    });
+
+    // ===== ANALISIS =====
+    function analyzeGame(winner) {
+        const totalMoves = gameMoves.length;
+        if (totalMoves === 0) {
+            return { accuracy: 0, rating: 'Pemula', goodMoves: 0, blunders: 0, avgSpeed: 0 };
+        }
+
+        let goodMoves = 0;
+        let blunders = 0;
+        
+        gameMoves.forEach((move) => {
+            if (move.move && move.move.includes('promosi')) {
+                goodMoves += 2;
+            }
+        });
+
+        blunders = Math.max(0, Math.floor(totalMoves * 0.1) - Math.floor(goodMoves * 0.05));
+        const accuracy = Math.min(95, Math.round((goodMoves / Math.max(1, totalMoves)) * 50 + 30));
+
+        let rating = 'Pemula';
+        if (accuracy >= 85) rating = 'Grandmaster ⭐';
+        else if (accuracy >= 70) rating = 'Master 🏆';
+        else if (accuracy >= 55) rating = 'Ahli 💪';
+        else if (accuracy >= 40) rating = 'Menengah 📈';
+        else rating = 'Pemula 🌱';
+
+        let avgSpeed = 0;
+        if (moveTimestamps.length > 1) {
+            let totalTime = 0;
+            for (let i = 1; i < moveTimestamps.length; i++) {
+                totalTime += (moveTimestamps[i] - moveTimestamps[i-1]) / 1000;
+            }
+            avgSpeed = totalTime / (moveTimestamps.length - 1);
+        }
+
+        if (winner === 'user') {
+            return { 
+                accuracy: Math.min(98, accuracy + 10), 
+                rating: rating + ' 🎯', 
+                goodMoves: goodMoves + 2, 
+                blunders: Math.max(0, blunders - 1),
+                avgSpeed: avgSpeed
+            };
+        } else if (winner === 'bot') {
+            return { 
+                accuracy: Math.max(10, accuracy - 15), 
+                rating: rating, 
+                goodMoves: Math.max(0, goodMoves - 1), 
+                blunders: blunders + 2,
+                avgSpeed: avgSpeed
+            };
+        }
+        return { accuracy, rating, goodMoves, blunders, avgSpeed };
+    }
+
+    // ===== RENDER =====
+    function renderBoard() {
+        boardEl.innerHTML = '';
+        
+        // FLIP BOARD berdasarkan userColor
+        const shouldFlip = userColor === 'b';
+        const rows = shouldFlip ? [7,6,5,4,3,2,1,0] : [0,1,2,3,4,5,6,7];
+        
+        for (let ri = 0; ri < 8; ri++) {
+            const r = rows[ri];
+            for (let ci = 0; ci < 8; ci++) {
+                const c = shouldFlip ? 7 - ci : ci;
+                const sq = document.createElement('div');
+                const light = (r + c) % 2 === 0;
+                sq.className = `square ${light ? 'light' : 'dark'}`;
+                
+                if (lastMove) {
+                    if ((lastMove.from.row === r && lastMove.from.col === c) ||
+                        (lastMove.to.row === r && lastMove.to.col === c)) {
+                        sq.classList.add('last-move');
+                    }
+                }
+                
+                const piece = board[r][c];
+                if (piece) {
+                    const u = {'w':{'k':'♔','q':'♕','r':'♖','b':'♗','n':'♘','p':'♙'}, 'b':{'k':'♚','q':'♛','r':'♜','b':'♝','n':'♞','p':'♟'}};
+                    sq.textContent = u[piece.color][piece.type] || '';
+                }
+                if (selectedSquare && selectedSquare.row === r && selectedSquare.col === c) sq.classList.add('selected');
+                
+                const isLegal = legalMovesForSelected.some(m => m.row === r && m.col === c);
+                if (isLegal) {
+                    const isEnPassant = legalMovesForSelected.some(m => m.row === r && m.col === c && m.enPassant);
+                    if (isEnPassant) {
+                        sq.classList.add('legal-move', 'en-passant');
+                    } else {
+                        sq.classList.add('legal-move');
+                    }
+                }
+                
+                sq.dataset.row = r;
+                sq.dataset.col = c;
+                sq.addEventListener('click', ()=>onSquareClick(r,c));
+                boardEl.appendChild(sq);
+            }
+        }
+    }
+
+    function updateStatusUI(msg) {
+        if (msg) {
+            statusText.textContent = msg;
+        } else {
+            const st = gameStatus(board, currentTurn);
+            if (gameOver) return;
+            if (st==='check') {
+                statusText.textContent = `⚠️ Cek! (${currentTurn==='w'?'Putih':'Hitam'})`;
+            } else if (isBotThinking) {
+                statusText.textContent = '🤔 Bot sedang berpikir...';
+            } else {
+                const isYou = currentTurn === userColor;
+                statusText.textContent = `Giliran ${currentTurn==='w'?'Putih':'Hitam'} ${isYou ? '(Anda)' : '(Bot)'}`;
+            }
+        }
+    }
+
+    // ===== KLIK KOTAK =====
+    function onSquareClick(row, col) {
+        if (!gameActive || gameOver || currentTurn !== userColor || isBotThinking) {
+            if (!gameActive) statusText.textContent = '⏳ Game belum dimulai';
+            if (isBotThinking) statusText.textContent = '🤔 Bot sedang berpikir...';
+            return;
+        }
+        const piece = board[row][col];
+        if (piece && piece.color === userColor) {
+            const moves = legalMoves(board, row, col);
+            if (moves.length===0) { selectedSquare=null; legalMovesForSelected=[]; renderBoard(); return; }
+            selectedSquare = {row, col};
+            legalMovesForSelected = moves;
+            renderBoard();
+            return;
+        }
+        if (selectedSquare) {
+            const isLegal = legalMovesForSelected.some(m=>m.row===row && m.col===col);
+            if (isLegal) {
+                const {row:fr, col:fc} = selectedSquare;
+                const move = legalMovesForSelected.find(m=>m.row===row && m.col===col);
+                const moveData = {
+                    castling: move ? move.castling || null : null,
+                    enPassant: move ? move.enPassant || false : false
+                };
+                
+                moveTimestamps.push(Date.now());
+                
+                lastMove = { from: {row: fr, col: fc}, to: {row: row, col: col} };
+                const result = makeMove(board, fr, fc, row, col, moveData);
+                
+                if (result.success) {
+                    const moveStr = `${String.fromCharCode(97+fc)}${8-fr} → ${String.fromCharCode(97+col)}${8-row}`;
+                    gameMoves.push({ from: {row: fr, col: fc}, to: {row: row, col: col}, color: userColor, move: moveStr });
+                    addMoveToHistory(userColor, moveStr);
+                    
+                    if (result.promotion) {
+                        showPromotionModal(userColor, row, col);
+                        selectedSquare = null; legalMovesForSelected = [];
+                        renderBoard();
+                        return;
+                    }
+                    
+                    // Ganti giliran ke bot
+                    const botColor = userColor === 'w' ? 'b' : 'w';
+                    currentTurn = botColor;
+                    selectedSquare = null; legalMovesForSelected = [];
+                    renderBoard();
+                    updateStatusUI();
+                    
+                    const st = gameStatus(board, botColor);
+                    if (st==='checkmate') { handleWin(); return; }
+                    else if (st==='stalemate') { handleStalemate(); return; }
+                    
+                    switchTimer(botColor);
+                    setTimeout(() => botMove(), 300);
+                }
+            } else {
+                selectedSquare = null; legalMovesForSelected = []; renderBoard();
+            }
+        }
+    }
+
+    // ===== GAME HANDLERS =====
+    async function handleWin() {
+        gameOver = true; gameActive = false; stopTimer();
+        const analysis = analyzeGame('user');
+        
+        const reward = getEloReward(settings.difficulty);
+        elo += reward;
+        rewardAmount = reward;
+        
+        statusText.textContent = `🎉 Anda Menang! +${reward} ELO`;
+        renderBoard();
+        userElo.textContent = elo;
+        
+        await updateUserStats(true, analysis);
+        showAnalysisModal('user', analysis);
+    }
+
+    async function handleLose() {
+        gameOver = true; gameActive = false; stopTimer();
+        const analysis = analyzeGame('bot');
+        
+        const penalty = getEloPenalty(settings.difficulty);
+        elo = Math.max(0, elo - penalty);
+        rewardAmount = -penalty;
+        
+        statusText.textContent = `💀 Anda Kalah -${penalty} ELO`;
+        renderBoard();
+        userElo.textContent = elo;
+        
+        await updateUserStats(false, analysis);
+        showAnalysisModal('bot', analysis);
+    }
+
+    function handleStalemate() {
+        gameOver = true; gameActive = false; stopTimer();
+        const analysis = analyzeGame('draw');
+        rewardAmount = 0;
+        statusText.textContent = '🤝 Stalemate! Seri';
+        renderBoard();
+        showAnalysisModal('draw', analysis);
+    }
+
+    function handleTimeout(color) {
+        if (gameOver) return;
+        gameOver = true; gameActive = false; stopTimer();
+        const analysis = analyzeGame('bot');
+        
+        // Jika waktu habis untuk user
+        if (color === userColor) {
+            const penalty = getEloPenalty(settings.difficulty);
+            statusText.textContent = `⏰ Waktu habis! Anda kalah -${penalty} ELO`;
+            elo = Math.max(0, elo - penalty);
+            rewardAmount = -penalty;
+            userElo.textContent = elo;
+            updateUserStats(false, analysis);
+            showAnalysisModal('bot', analysis);
+        } else {
+            const reward = getEloReward(settings.difficulty);
+            statusText.textContent = `🎉 Waktu habis! Bot kalah. Anda menang! +${reward} ELO`;
+            elo += reward;
+            rewardAmount = reward;
+            userElo.textContent = elo;
+            updateUserStats(true, analysis);
+            showAnalysisModal('user', analysis);
+        }
+        renderBoard();
+    }
+
+    function endGame() {
+        const st = gameStatus(board, currentTurn);
+        const analysis = analyzeGame('draw');
+        if (st==='checkmate') {
+            if (currentTurn === userColor) handleLose();
+            else handleWin();
+        } else if (st==='stalemate') {
+            handleStalemate();
+        } else {
+            gameOver = true; gameActive = false; stopTimer();
+            statusText.textContent = '⏹️ Game berakhir';
+            renderBoard();
+            showAnalysisModal('draw', analysis);
+        }
+    }
+
+    function showAnalysisModal(winner, analysis) {
+        const rewardText = rewardAmount > 0 ? `+${rewardAmount} ELO` : 
+                          rewardAmount < 0 ? `${rewardAmount} ELO` : '0 ELO';
+        
+        resultIcon.textContent = winner === 'user' ? '🏆' : winner === 'bot' ? '💀' : '⚖️';
+        modalTitle.textContent = winner === 'user' ? '🎉 Selamat! Anda Menang!' : 
+                                 winner === 'bot' ? '💀 Anda Kalah' : '🤝 Stalemate! Seri';
+        modalSub.textContent = winner === 'user' ? `${rewardText}! Pertandingan brilian!` :
+                               winner === 'bot' ? `${rewardText}. Coba lagi!` : 'Permainan berakhir imbang.';
+        
+        document.getElementById('accuracy').textContent = (analysis.accuracy || 0) + '%';
+        document.getElementById('gameRating').textContent = analysis.rating || 'Pemula';
+        document.getElementById('goodMoves').textContent = analysis.goodMoves || 0;
+        document.getElementById('blunders').textContent = analysis.blunders || 0;
+        document.getElementById('gameSpeed').textContent = analysis.avgSpeed ? analysis.avgSpeed.toFixed(1) + 's' : '--';
+        document.getElementById('eloReward').textContent = rewardText;
+        
+        const historyModal = document.getElementById('moveHistoryModal');
+        historyModal.innerHTML = '';
+        let moveNum = 1;
+        let html = '';
+        for (let i = 0; i < gameMoves.length; i += 2) {
+            const white = gameMoves[i];
+            const black = gameMoves[i+1];
+            html += `<div>`;
+            html += `<span class="move-num">${moveNum}.</span>`;
+            html += `<span class="move-white">${white ? white.move : ''}</span>`;
+            if (black) {
+                html += ` <span class="move-black">${black.move}</span>`;
+            }
+            html += `</div>`;
+            moveNum++;
+        }
+        historyModal.innerHTML = html || '<div style="color:#8aa3c9; text-align:center;">Tidak ada gerakan</div>';
+        
+        modal.classList.add('show');
+    }
+
+    // ===== UPDATE USER STATS =====
+    async function updateUserStats(won, gameData = null) {
+        try {
+            const data = await getData();
+            const user = data.users.find(u => u.userId === currentUser.userId);
+            if (user) {
+                user.gamesPlayed = (user.gamesPlayed || 0) + 1;
+                if (won) user.gamesWon = (user.gamesWon || 0) + 1;
+                user.elo = elo;
+                
+                if (elo >= 2000) user.rank = 'Grandmaster';
+                else if (elo >= 1700) user.rank = 'Master';
+                else if (elo >= 1400) user.rank = 'Ahli';
+                else if (elo >= 1200) user.rank = 'Menengah';
+                else user.rank = 'Pemula';
+                
+                if (gameData) {
+                    user.totalAccuracy = (user.totalAccuracy || 0) + (gameData.accuracy || 0);
+                    user.totalSpeed = (user.totalSpeed || 0) + (gameData.avgSpeed || 0);
+                    user.gamesWithStats = (user.gamesWithStats || 0) + 1;
+                    
+                    if (won) {
+                        user.currentStreak = (user.currentStreak || 0) + 1;
+                    } else {
+                        user.currentStreak = 0;
+                    }
+                }
+
+                await updateData(data);
+                localStorage.setItem('chess_user', JSON.stringify({
+                    userId: user.userId,
+                    username: user.username,
+                    elo: user.elo,
+                    rank: user.rank
+                }));
+                userElo.textContent = user.elo;
+                console.log('✅ User stats updated:', user.username, 'ELO:', user.elo);
+            } else {
+                console.log('❌ User not found:', currentUser.userId);
+            }
+        } catch (error) {
+            console.error('Error update stats:', error);
+        }
+    }
+
+    // ===== MODAL =====
+    modalCloseBtn.addEventListener('click', () => {
+        modal.classList.remove('show');
+        localStorage.removeItem('online_room');
+        console.log('🔄 Kembali ke dashboard');
+        window.location.href = 'dashboard.html';
+    });
+
+    // ===== START GAME =====
+    function startGame() {
+        board = createBoard();
+        // Putih selalu mulai duluan
+        currentTurn = 'w';
+        selectedSquare = null;
+        legalMovesForSelected = [];
+        gameActive = true;
+        gameOver = false;
+        lastMove = null;
+        isBotThinking = false;
+        enPassantTarget = null;
+        gameMoves = [];
+        moveTimestamps = [];
+        moveHistoryList = [];
+        gameStartTime = Date.now();
+        moveTimestamps.push(gameStartTime);
+        
+        timerEnabled = settings.timerEnabled !== undefined ? settings.timerEnabled : true;
+        initTimers();
+        activeTimer = 'w';
+        if (timerEnabled && settings.timerMinutes > 0) {
+            startTimer();
+        }
+        
+        updateHistory();
+        renderBoard();
+        
+        // Jika user bermain sebagai hitam, Putih adalah bot, maka giliran bot
+        if (userColor === 'b') {
+            statusText.textContent = '🤖 Bot sedang berpikir...';
+            // Bot mulai duluan (sebagai putih)
+            setTimeout(() => botMove(), 500);
+        } else {
+            statusText.textContent = '🎮 Bermain! Giliran Putih (Anda)';
+        }
+    }
+
+    // ===== RESIGN =====
+    async function resignGame() {
+        if (!gameActive || gameOver) return;
+        if (confirm('Yakin ingin menyerah? ELO akan turun.')) {
+            gameActive = false; gameOver = true; stopTimer();
+            const analysis = analyzeGame('bot');
+            const penalty = getEloPenalty(settings.difficulty);
+            elo = Math.max(0, elo - penalty);
+            rewardAmount = -penalty;
+            userElo.textContent = elo;
+            await updateUserStats(false, analysis);
+            statusText.textContent = `🏳️ Anda menyerah. -${penalty} ELO`;
+            renderBoard();
+            showAnalysisModal('bot', analysis);
+        }
+    }
+
+    // ===== LOAD USER & SETTINGS =====
+    function loadUser() {
+        currentUser = getUserSession();
+        if (!currentUser) return;
+        userName.textContent = currentUser.username;
+        elo = currentUser.elo || 100;
+        userElo.textContent = elo;
+
+        settings = getGameSettings();
+        const diffMap = { 'easy': 'Mudah', 'medium': 'Sedang', 'hard': 'Sulit' };
+        diffDisplay.textContent = diffMap[settings.difficulty] || 'Sedang';
+        
+        const displayText = getEloDisplay(settings.difficulty);
+        rewardDisplay.textContent = displayText;
+        
+        timerEnabled = settings.timerEnabled !== undefined ? settings.timerEnabled : true;
+        
+        // ===== SET USER COLOR =====
+        userColor = settings.playerColor === 'black' ? 'b' : 'w';
+        botColor = userColor === 'w' ? 'b' : 'w';
+        console.log('🎨 User plays as:', userColor === 'w' ? 'Putih' : 'Hitam');
+        console.log('🤖 Bot plays as:', botColor === 'w' ? 'Putih' : 'Hitam');
+        
+        // Update color badge
+        if (userColor === 'w') {
+            colorBadge.textContent = '⚪ Putih';
+            colorBadge.className = 'color-badge white';
+        } else {
+            colorBadge.textContent = '⚫ Hitam';
+            colorBadge.className = 'color-badge black';
+        }
+
+        getData().then(data => {
+            const user = data.users.find(u => u.userId === currentUser.userId);
+            if (user) {
+                elo = user.elo || 100;
+                userElo.textContent = elo;
+                localStorage.setItem('chess_user', JSON.stringify({
+                    userId: user.userId,
+                    username: user.username,
+                    elo: user.elo,
+                    rank: user.rank
+                }));
+            }
+        }).catch(e => console.error(e));
+    }
+
+    // ===== EVENT LISTENERS =====
+    document.getElementById('resignBtn').addEventListener('click', resignGame);
+
+    // ===== INIT =====
+    loadUser();
+    board = createBoard();
+    renderBoard();
+    updateHistory();
+    
+    setTimeout(() => {
+        startGame();
+    }, 500);
+</script>
+</body>
+</html>
